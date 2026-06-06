@@ -1,0 +1,13 @@
+let name = "Lizard"
+let ver = 0.1
+let score = 95
+
+show(f#"Bahasa: {name}")
+show(f#"Versi: {ver}")
+show(f#"Hitung: {2 + 3 * 4}")
+show(f#`Skor {score}: ${score >= 90 ? 'A' : 'B'}`)
+show(f#"Escape kurung: {{bukan interpolasi}}")
+show(f#"{name} versi {ver} siap digunakan")
+
+// Mix fstring + optional semicolons
+show(f#"Nama: {name}"); show(f#"Skor: {score}")

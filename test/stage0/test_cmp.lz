@@ -1,0 +1,27 @@
+show(5 == 5)
+show(5 != 3)
+show(3 < 5)
+show(5 > 3)
+show(5 >= 5)
+show(3 <= 3)
+show(5 == 3)
+
+let name = "lizard"
+show(name == "lizard")
+show(name != "python")
+
+let x = null
+show(x == null)
+show(x != null)
+
+show(true == true)
+show(false == false)
+show(1 == true)
+
+show(5 > 3 && 2 < 4)
+show(5 > 3 and 2 < 4)
+show(false || true)
+show(false or true)
+show(!false)
+show(not false)
+show(!(5 > 3))

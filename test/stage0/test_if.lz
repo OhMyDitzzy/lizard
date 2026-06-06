@@ -1,0 +1,171 @@
+// =====================================================
+// Lizard — if / elif / else test & study cases
+// =====================================================
+
+
+// -----------------------------------------------------
+// 1. Same-line form
+//    Kondisi dan statement di baris yang sama.
+//    Tidak butuh ; karena hanya satu statement.
+// -----------------------------------------------------
+
+let age = 20
+
+if age >= 18 show("1. Sudah dewasa")
+if age < 18  show("1. Masih di bawah umur")   // tidak dijalankan
+
+
+// -----------------------------------------------------
+// 2. Multi-line single statement
+//    Statement di baris berikutnya, harus diakhiri ;
+// -----------------------------------------------------
+
+let suhu = 35
+
+if suhu > 30
+    show("2. Panas banget!");
+
+
+// -----------------------------------------------------
+// 3. Multi-line multiple statements
+//    Lebih dari satu statement, diakhiri ;
+// -----------------------------------------------------
+
+let nilai = 85
+
+if nilai >= 80
+    show("3. Selamat!")
+    show("3. Nilai kamu bagus.");
+
+
+// -----------------------------------------------------
+// 4. if / else (dua cabang)
+// -----------------------------------------------------
+
+var lampu = true
+
+if lampu == true
+    show("4. Lampu menyala");
+else
+    show("4. Lampu mati");
+
+
+// -----------------------------------------------------
+// 5. if / elif / else (banyak cabang)
+// -----------------------------------------------------
+
+var score = 72
+
+if score >= 90
+    show("5. Grade: A");
+elif score >= 80
+    show("5. Grade: B");
+elif score >= 70
+    show("5. Grade: C");
+elif score >= 60
+    show("5. Grade: D");
+else
+    show("5. Grade: E");
+
+
+// -----------------------------------------------------
+// 6. Kondisi dengan operator logika
+// -----------------------------------------------------
+
+let x = 15
+let y = 8
+
+if x > 10 && y < 10
+    show("6. x besar dan y kecil");
+
+if x > 20 or y < 10
+    show("6. salah satu kondisi benar");
+
+if not (x == y)
+    show("6. x dan y tidak sama");
+
+
+// -----------------------------------------------------
+// 7. Kondisi dengan kalkulasi
+// -----------------------------------------------------
+
+let a = 6
+let b = 4
+
+if (a + b) > 9
+    show("7. Jumlah lebih dari 9");
+
+if (a * b) == 24
+    show("7. Hasil kali tepat 24");
+
+
+// -----------------------------------------------------
+// 8. Null check
+// -----------------------------------------------------
+
+let data = null
+
+if data == null
+    show("8. Data belum diisi");
+else
+    show("8. Data tersedia");
+
+
+// -----------------------------------------------------
+// 9. Nested if — gunakan {} untuk hindari ambiguitas
+// -----------------------------------------------------
+
+let poin = 95
+let member = true
+
+if poin >= 90 {
+    if member == true {
+        show("9. Member VIP — poin sempurna!")
+    } else {
+        show("9. Poin sempurna tapi bukan member")
+    }
+} else {
+    show("9. Poin belum cukup")
+}
+
+
+// -----------------------------------------------------
+// 10. If dengan var yang diubah di dalam blok
+// -----------------------------------------------------
+
+var status = "belum"
+
+if age >= 18 {
+    status = "dewasa"
+    show("10. Status diperbarui:")
+    show(status)
+} else {
+    status = "anak-anak"
+    show("10. Status: " + status)
+}
+
+
+// -----------------------------------------------------
+// 11. Chained comparison via logical operator
+// -----------------------------------------------------
+
+let n = 50
+
+if n > 0 && n < 100
+    show("11. n ada di antara 1 dan 99");
+
+if n >= 50 and n <= 50
+    show("11. n tepat 50");
+
+
+// -----------------------------------------------------
+// 12. Same-line else (semua di satu baris, tidak bisa)
+//    Untuk else/elif, HARUS ada blok terpisah.
+//    Berikut contoh yang BENAR:
+// -----------------------------------------------------
+
+let aktif = false
+
+if aktif show("12. Aktif")
+elif aktif == null show("12. Null")
+else show("12. Tidak aktif")

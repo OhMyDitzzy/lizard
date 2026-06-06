@@ -1,0 +1,5 @@
+let array_of_number = [1, 2, 3]
+show(array_of_number)
+
+array_of_number[0] = 5
+show(array_of_number) // Should be [5, 2, 3]

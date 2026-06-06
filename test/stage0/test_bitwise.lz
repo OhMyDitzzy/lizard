@@ -1,0 +1,19 @@
+let a = 5
+let b = 3
+
+show(a & b)
+show(a | b)
+show(a ^ b)
+show(~a)
+show(a << 1)
+show(a >> 1)
+
+show((a & b) | (a ^ b))
+
+let flag = true
+show(flag & true)
+show(flag | false)
+
+let x = -8
+let result = (x % (1 << 32)) >> 2
+show(result)

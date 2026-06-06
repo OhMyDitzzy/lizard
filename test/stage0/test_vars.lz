@@ -1,0 +1,18 @@
+let greeting = "Hello from Lizard!"
+var score int = 0
+
+show(greeting)
+show("Score:", score)
+
+score = 100
+show("New score:", score)
+
+let pi float = 3.14159
+show("Pi:", pi)
+
+let active bool = true
+show("Active:", active)
+
+var msg = "initial"
+msg = "updated"
+show(msg)

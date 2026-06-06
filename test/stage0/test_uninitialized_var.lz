@@ -1,0 +1,6 @@
+var a;
+var b int;
+var c string;
+show(a == null);
+show(b);
+show(c == "");

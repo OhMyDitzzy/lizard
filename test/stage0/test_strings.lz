@@ -1,0 +1,31 @@
+// Single-quoted strings
+let a = 'Hello, World!'
+let b = 'It\'s a test'
+show(a)
+show(b)
+
+// Single-quoted fstring
+let name = 'Lizard'
+show(f#'Bahasa: {name}')
+show(f#'Nilai: {40 + 50}')
+
+// Multiline string
+let license = `
+Apache 2.0 License
+Copyright 2025
+All rights reserved.
+`
+show(license)
+
+// Multiline fstring
+let ver = "1.0"
+let info = f#`
+  Nama    : {name}
+  Versi   : {ver}
+  Angka   : {6 * 7}
+`
+show(info)
+
+// Mix backtick + single + double in same file
+let x = 'satu'; let y = "dua"; let z = `tiga`
+show(x + ' ' + y + ' ' + z)

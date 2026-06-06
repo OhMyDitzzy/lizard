@@ -1,0 +1,2 @@
+show("\033[91mHello World\033[0m")
+show(1)

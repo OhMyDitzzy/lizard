@@ -1,0 +1,19 @@
+let a = 10
+let b = 3
+
+show(a + b)
+show(a - b)
+show(a * b)
+show(a / b)
+show(a % b)
+show(10 / 2)
+show(10 / 4)
+
+let x = (2 + 3) * 4
+show(x)
+
+show(-x)
+show(-(a + b))
+
+show("Score: " + a)
+show("Pi ~= " + 3.14159)

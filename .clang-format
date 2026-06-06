@@ -1,0 +1,55 @@
+---
+# Lizard project — C++ code style
+# Based on LLVM style with project-specific adjustments.
+Language: Cpp
+Standard: c++17
+
+# Indentation
+IndentWidth:          4
+TabWidth:             4
+UseTab:               Never
+IndentCaseLabels:     true
+IndentPPDirectives:   BeforeHash
+NamespaceIndentation: None
+
+# Column limit
+ColumnLimit: 100
+ReflowComments: true
+
+# Braces — attach to the same line
+BreakBeforeBraces: Attach
+
+# Pointer and reference alignment
+PointerAlignment:   Left
+ReferenceAlignment: Left
+
+# Spaces
+SpaceBeforeParens:              ControlStatements
+SpaceInEmptyParentheses:        false
+SpaceAfterCStyleCast:           false
+SpaceBeforeAssignmentOperators: true
+SpacesInAngles:                 Never
+SpacesInContainerLiterals:      false
+SpacesInParentheses:            false
+SpacesInSquareBrackets:         false
+
+# Line breaks
+AllowShortFunctionsOnASingleLine:   Inline
+AllowShortIfStatementsOnASingleLine: WithoutElse
+AllowShortLoopsOnASingleLine:       false
+AllowShortCaseLabelsOnASingleLine:  false
+AlwaysBreakAfterReturnType:         None
+BreakBeforeTernaryOperators:        true
+BreakConstructorInitializers:       BeforeColon
+BreakStringLiterals:                false
+
+# Include sorting
+SortIncludes:        CaseSensitive
+IncludeBlocks:       Preserve
+
+# Other
+Cpp11BracedListStyle:      true
+DerivePointerAlignment:    false
+FixNamespaceComments:      true
+MaxEmptyLinesToKeep:       1
+SeparateDefinitionBlocks:  Leave

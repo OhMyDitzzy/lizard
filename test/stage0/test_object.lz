@@ -1,0 +1,29 @@
+let profile = #{
+  name: "Ditzzy",
+  age: 18
+}
+
+show(profile) // Should be: { name: "Ditzzy", age: 18 }
+show(profile.name) // Should be: Ditzzy
+
+profile.name = "Lenwy"
+show(profile) // Should be: { name: "Lenwy", age: 18 }
+show(profile.name) // Should be: Lenwy
+
+let profile_card = #{
+  workers: [#{
+     name: "Ditzzy",
+     age: 18,
+     is_married: false
+  },
+  #{
+     name: "Lenwy",
+     age: 18,
+     is_married: true
+  }]
+}
+
+show(profile_card)
+
+profile_card.workers[0].name = "Rendi"
+show(profile_card)

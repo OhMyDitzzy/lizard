@@ -1,0 +1,20 @@
+let age = 20
+let status = age >= 18 ? "dewasa" : "anak"
+show(status)
+
+show(10 > 5 ? "ya" : "tidak")
+
+let x = null
+let result = x ?? "default value"
+show(result)
+
+let y = "ada nilai"
+show(y ?? "tidak akan muncul")
+
+let a = null
+let b = null
+let c = "akhirnya ada"
+show(a ?? b ?? c)
+
+let score = 85
+show("Grade: " + (score >= 90 ? "A" : score >= 80 ? "B" : score >= 70 ? "C" : "D"))

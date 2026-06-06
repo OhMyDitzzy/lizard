@@ -1,0 +1,5 @@
+// let name string
+// show(name)
+
+var age int
+show(age)

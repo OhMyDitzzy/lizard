@@ -1,0 +1,40 @@
+root = true
+
+[*]
+charset             = utf-8
+end_of_line         = lf
+insert_final_newline  = true
+trim_trailing_whitespace = true
+
+# C++ source files
+[*.{cpp,hpp,h,cc,cxx}]
+indent_style = space
+indent_size  = 4
+
+# CMake files
+[CMakeLists.txt]
+indent_style = space
+indent_size  = 4
+
+[*.cmake]
+indent_style = space
+indent_size  = 4
+
+# Lizard source files
+[*.lz]
+indent_style = space
+indent_size  = 4
+
+# Markdown — trailing whitespace is intentional (line breaks)
+[*.md]
+trim_trailing_whitespace = false
+
+# YAML / GitHub Actions
+[*.{yml,yaml}]
+indent_style = space
+indent_size  = 2
+
+# JSON
+[*.json]
+indent_style = space
+indent_size  = 2
