@@ -9,8 +9,8 @@
  *   LZ_DEBUG("executing show() at line " << node.line);
  */
 #ifdef LIZARD_DEBUG
-#include <iostream>
-#define LZ_DEBUG(expr) (std::cerr << "[DEBUG] " << expr << "\n")
+    #include <iostream>
+    #define LZ_DEBUG(expr) (std::cerr << "[DEBUG] " << expr << "\n")
 #else
-#define LZ_DEBUG(expr) ((void)0)
+    #define LZ_DEBUG(expr) ((void)0)
 #endif

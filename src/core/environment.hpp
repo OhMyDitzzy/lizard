@@ -1,11 +1,11 @@
 #pragma once
+#include "value.hpp"
 #include <string>
 #include <unordered_map>
-#include "value.hpp"
 
 struct Variable {
     LizardValue value;
-    bool        is_mutable;
+    bool is_mutable;
 };
 
 /*
@@ -16,25 +16,16 @@ struct Variable {
  * a pointer to its enclosing one, and get/assign will walk the chain.
  */
 class Environment {
-public:
-    void define(const std::string& name,
-                LizardValue value,
-                bool is_mutable,
-                const std::string& filepath,
-                const std::string& source,
-                int line, int col);
+  public:
+    void define(const std::string& name, LizardValue value, bool is_mutable,
+                const std::string& filepath, const std::string& source, int line, int col);
 
-    LizardValue get(const std::string& name,
-                    const std::string& filepath,
-                    const std::string& source,
+    LizardValue get(const std::string& name, const std::string& filepath, const std::string& source,
                     int line, int col) const;
 
-    void assign(const std::string& name,
-                LizardValue value,
-                const std::string& filepath,
-                const std::string& source,
-                int line, int col);
+    void assign(const std::string& name, LizardValue value, const std::string& filepath,
+                const std::string& source, int line, int col);
 
-private:
+  private:
     std::unordered_map<std::string, Variable> vars_;
 };

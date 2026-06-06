@@ -6,7 +6,7 @@ enum class TokenType {
     String,
     Integer,
     Float,
-    FString,   // f#"..." format string
+    FString, // f#"..." format string
 
     /* Keywords */
     Show,
@@ -26,55 +26,55 @@ enum class TokenType {
     Identifier,
 
     /* Arithmetic operators */
-    Plus,            // +
-    Minus,           // -
-    Star,            // *
-    Slash,           // /
-    Percent,         // %
+    Plus,    // +
+    Minus,   // -
+    Star,    // *
+    Slash,   // /
+    Percent, // %
 
     /* Bitwise operators */
-    Ampersand,       // &
-    Pipe,            // |
-    Caret,           // ^
-    Tilde,           // ~
-    LessLess,        // <<
-    GreaterGreater,  // >>
+    Ampersand,      // &
+    Pipe,           // |
+    Caret,          // ^
+    Tilde,          // ~
+    LessLess,       // <<
+    GreaterGreater, // >>
 
     /* Comparison operators */
-    EqualEqual,      // ==
-    BangEqual,       // !=
-    Less,            // <
-    Greater,         // >
-    LessEqual,       // <=
-    GreaterEqual,    // >=
+    EqualEqual,   // ==
+    BangEqual,    // !=
+    Less,         // <
+    Greater,      // >
+    LessEqual,    // <=
+    GreaterEqual, // >=
 
     /* Logical operators (symbol form) */
-    AmpAmp,          // &&
-    PipePipe,        // ||
-    Bang,            // !
-    Question,        // ?
+    AmpAmp,           // &&
+    PipePipe,         // ||
+    Bang,             // !
+    Question,         // ?
     QuestionQuestion, // ??
 
     /* Punctuation */
-    LeftParen,       // (
-    RightParen,      // )
-    LeftBracket,     // [
-    RightBracket,    // ]
-    Comma,           // ,
-    Colon,           // :
-    Dot,             // .
-    Hash,            // #
-    Equals,          // =
-    Semicolon,       // ;
-    LeftBrace,       // {
-    RightBrace,      // }
+    LeftParen,    // (
+    RightParen,   // )
+    LeftBracket,  // [
+    RightBracket, // ]
+    Comma,        // ,
+    Colon,        // :
+    Dot,          // .
+    Hash,         // #
+    Equals,       // =
+    Semicolon,    // ;
+    LeftBrace,    // {
+    RightBrace,   // }
 
     EndOfFile
 };
 
 struct Token {
-    TokenType   type;
+    TokenType type;
     std::string value;
-    int         line;
-    int         col;
+    int line;
+    int col;
 };

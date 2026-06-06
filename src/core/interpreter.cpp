@@ -1,11 +1,11 @@
 #include "interpreter.hpp"
 #include "../builtins/io/show.hpp"
-#include "../error/error.hpp"
 #include "../debug.hpp"
-#include <cstdlib>
+#include "../error/error.hpp"
 #include <cmath>
-#include <sstream>
+#include <cstdlib>
 #include <iomanip>
+#include <sstream>
 
 Interpreter::Interpreter(const std::string& filepath, const std::string& source)
     : filepath_(filepath), source_(source) {}
@@ -16,33 +16,52 @@ void Interpreter::execute(const Program& program) {
 }
 
 void Interpreter::executeStatement(const ASTNode& node) {
-    if (const auto* s = dynamic_cast<const ShowStatement*>(&node))         { executeShow(*s);         return; }
-    if (const auto* s = dynamic_cast<const VarDeclStatement*>(&node))      { executeVarDecl(*s);      return; }
-    if (const auto* s = dynamic_cast<const AssignStatement*>(&node))       { executeAssign(*s);       return; }
-    if (const auto* s = dynamic_cast<const IfStatement*>(&node))           { executeIf(*s);           return; }
-    if (const auto* s = dynamic_cast<const LValueAssignStatement*>(&node)) { executeLValueAssign(*s); return; }
+    if (const auto* s = dynamic_cast<const ShowStatement*>(&node)) {
+        executeShow(*s);
+        return;
+    }
+    if (const auto* s = dynamic_cast<const VarDeclStatement*>(&node)) {
+        executeVarDecl(*s);
+        return;
+    }
+    if (const auto* s = dynamic_cast<const AssignStatement*>(&node)) {
+        executeAssign(*s);
+        return;
+    }
+    if (const auto* s = dynamic_cast<const IfStatement*>(&node)) {
+        executeIf(*s);
+        return;
+    }
+    if (const auto* s = dynamic_cast<const LValueAssignStatement*>(&node)) {
+        executeLValueAssign(*s);
+        return;
+    }
 
     LizardError err;
-    err.code = "E020"; err.message = "interpreter encountered an unknown statement type";
-    err.filepath = filepath_; err.line = node.line; err.col = node.col; err.length = 1;
+    err.code = "E020";
+    err.message = "interpreter encountered an unknown statement type";
+    err.filepath = filepath_;
+    err.line = node.line;
+    err.col = node.col;
+    err.length = 1;
     reportError(err, source_);
     std::exit(1);
 }
 
-static LizardValue zeroValueFor(const std::string& type_hint,
-                                 const std::string& filepath,
-                                 const std::string& source,
-                                 int line, int col)
-{
-    if (type_hint == "int")    return LizardValue::makeInt("0");
-    if (type_hint == "float")  return LizardValue::makeFloat("0.0");
+static LizardValue zeroValueFor(const std::string& type_hint, const std::string& filepath,
+                                const std::string& source, int line, int col) {
+    if (type_hint == "int") return LizardValue::makeInt("0");
+    if (type_hint == "float") return LizardValue::makeFloat("0.0");
     if (type_hint == "string") return LizardValue::makeString("");
-    if (type_hint == "bool")   return LizardValue::makeBool(false);
-    if (type_hint == "null")   return LizardValue::makeNull();
+    if (type_hint == "bool") return LizardValue::makeBool(false);
+    if (type_hint == "null") return LizardValue::makeNull();
 
     LizardError err;
-    err.code = "E033"; err.message = "unknown type '" + type_hint + "', cannot determine zero value";
-    err.filepath = filepath; err.line = line; err.col = col;
+    err.code = "E033";
+    err.message = "unknown type '" + type_hint + "', cannot determine zero value";
+    err.filepath = filepath;
+    err.line = line;
+    err.col = col;
     err.length = static_cast<int>(type_hint.size());
     err.tip = "types with defined zero values are: int, float, string, bool";
     reportError(err, source);
@@ -81,20 +100,25 @@ void Interpreter::executeShow(const ShowStatement& node) {
         auto it = node.named_args.find(name);
         if (it != node.named_args.end()) target = evalValue(*it->second).display();
     };
-    applyNamed("end_ln",   args.end_ln);
+    applyNamed("end_ln", args.end_ln);
     applyNamed("start_ln", args.start_ln);
-    applyNamed("sep",      args.sep);
+    applyNamed("sep", args.sep);
     builtin_show(args);
 }
 
 LizardValue Interpreter::evalValue(const ASTNode& node) {
     if (const auto* lit = dynamic_cast<const LiteralNode*>(&node)) {
         switch (lit->kind) {
-            case LiteralNode::Kind::String:  return LizardValue::makeString(lit->value);
-            case LiteralNode::Kind::Integer: return LizardValue::makeInt(lit->value);
-            case LiteralNode::Kind::Float:   return LizardValue::makeFloat(lit->value);
-            case LiteralNode::Kind::Bool:    return LizardValue::makeBool(lit->value == "true");
-            case LiteralNode::Kind::Null:    return LizardValue::makeNull();
+            case LiteralNode::Kind::String:
+                return LizardValue::makeString(lit->value);
+            case LiteralNode::Kind::Integer:
+                return LizardValue::makeInt(lit->value);
+            case LiteralNode::Kind::Float:
+                return LizardValue::makeFloat(lit->value);
+            case LiteralNode::Kind::Bool:
+                return LizardValue::makeBool(lit->value == "true");
+            case LiteralNode::Kind::Null:
+                return LizardValue::makeNull();
         }
     }
     if (const auto* ident = dynamic_cast<const IdentifierNode*>(&node))
@@ -117,16 +141,15 @@ LizardValue Interpreter::evalValue(const ASTNode& node) {
     if (const auto* prop = dynamic_cast<const PropertyAccessNode*>(&node))
         return evalPropertyAccess(*prop);
 
-    if (const auto* idx = dynamic_cast<const IndexExprNode*>(&node))
-        return evalIndexAccess(*idx);
+    if (const auto* idx = dynamic_cast<const IndexExprNode*>(&node)) return evalIndexAccess(*idx);
 
     if (const auto* bin = dynamic_cast<const BinaryExprNode*>(&node)) {
         /* Short-circuit: &&, ||, and ?? don't always evaluate both sides. */
         if (bin->op == "&&" || bin->op == "||") {
             LizardValue lhs = evalValue(*bin->left);
-            bool lhsTruthy  = isTruthy(lhs);
+            bool lhsTruthy = isTruthy(lhs);
             if (bin->op == "&&" && !lhsTruthy) return LizardValue::makeBool(false);
-            if (bin->op == "||" &&  lhsTruthy) return LizardValue::makeBool(true);
+            if (bin->op == "||" && lhsTruthy) return LizardValue::makeBool(true);
             return LizardValue::makeBool(isTruthy(evalValue(*bin->right)));
         }
         if (bin->op == "??") {
@@ -137,17 +160,19 @@ LizardValue Interpreter::evalValue(const ASTNode& node) {
     }
 
     if (const auto* ternary = dynamic_cast<const TernaryExprNode*>(&node)) {
-        return isTruthy(evalValue(*ternary->condition))
-                   ? evalValue(*ternary->then_expr)
-                   : evalValue(*ternary->else_expr);
+        return isTruthy(evalValue(*ternary->condition)) ? evalValue(*ternary->then_expr)
+                                                        : evalValue(*ternary->else_expr);
     }
 
-    if (const auto* unary = dynamic_cast<const UnaryExprNode*>(&node))
-        return evalUnary(*unary);
+    if (const auto* unary = dynamic_cast<const UnaryExprNode*>(&node)) return evalUnary(*unary);
 
     LizardError err;
-    err.code = "E021"; err.message = "cannot evaluate this expression yet";
-    err.filepath = filepath_; err.line = node.line; err.col = node.col; err.length = 1;
+    err.code = "E021";
+    err.message = "cannot evaluate this expression yet";
+    err.filepath = filepath_;
+    err.line = node.line;
+    err.col = node.col;
+    err.length = 1;
     reportError(err, source_);
     std::exit(1);
 }
@@ -159,20 +184,26 @@ LizardValue Interpreter::evalValue(const ASTNode& node) {
  */
 bool Interpreter::isTruthy(const LizardValue& v) {
     switch (v.kind) {
-        case LizardValue::Kind::Null:    return false;
-        case LizardValue::Kind::Bool:    return v.raw == "1";
-        case LizardValue::Kind::Integer: return v.raw != "0";
-        case LizardValue::Kind::Float:   return std::stod(v.raw) != 0.0;
-        case LizardValue::Kind::String:  return !v.raw.empty();
-        case LizardValue::Kind::Array:   return !v.array_data->elements.empty();
-        case LizardValue::Kind::Object:  return !v.object_data->fields.empty();
+        case LizardValue::Kind::Null:
+            return false;
+        case LizardValue::Kind::Bool:
+            return v.raw == "1";
+        case LizardValue::Kind::Integer:
+            return v.raw != "0";
+        case LizardValue::Kind::Float:
+            return std::stod(v.raw) != 0.0;
+        case LizardValue::Kind::String:
+            return !v.raw.empty();
+        case LizardValue::Kind::Array:
+            return !v.array_data->elements.empty();
+        case LizardValue::Kind::Object:
+            return !v.object_data->fields.empty();
     }
     return false;
 }
 
 static bool isNumeric(const LizardValue& v) {
-    return v.kind == LizardValue::Kind::Integer ||
-           v.kind == LizardValue::Kind::Float   ||
+    return v.kind == LizardValue::Kind::Integer || v.kind == LizardValue::Kind::Float ||
            v.kind == LizardValue::Kind::Bool;
 }
 
@@ -208,42 +239,45 @@ static LizardValue smartNumeric(double d) {
     return LizardValue::makeFloat(formatFloat(d));
 }
 
-LizardValue Interpreter::evalComparison(const LizardValue& left,
-                                         const LizardValue& right,
-                                         const std::string& op,
-                                         const BinaryExprNode& node)
-{
-    /* Array and Object: reference equality — two vars are equal only if they share the same object. */
+LizardValue Interpreter::evalComparison(const LizardValue& left, const LizardValue& right,
+                                        const std::string& op, const BinaryExprNode& node) {
+    /* Array and Object: reference equality — two vars are equal only if they share the same object.
+     */
     if (left.kind == LizardValue::Kind::Array || left.kind == LizardValue::Kind::Object) {
-        bool same = (left.kind == right.kind) &&
-                    (left.kind == LizardValue::Kind::Array
-                         ? left.array_data.get()  == right.array_data.get()
-                         : left.object_data.get() == right.object_data.get());
+        bool same =
+            (left.kind == right.kind) && (left.kind == LizardValue::Kind::Array
+                                              ? left.array_data.get() == right.array_data.get()
+                                              : left.object_data.get() == right.object_data.get());
         if (op == "==") return LizardValue::makeBool(same);
         if (op == "!=") return LizardValue::makeBool(!same);
 
         LizardError err;
-        err.code = "E044"; err.message = "cannot order-compare arrays or objects with '" + op + "'";
-        err.filepath = filepath_; err.line = node.line; err.col = node.col;
+        err.code = "E044";
+        err.message = "cannot order-compare arrays or objects with '" + op + "'";
+        err.filepath = filepath_;
+        err.line = node.line;
+        err.col = node.col;
         err.length = static_cast<int>(op.size());
         err.tip = "arrays and objects support only '==' and '!='";
-        reportError(err, source_); std::exit(1);
+        reportError(err, source_);
+        std::exit(1);
     }
 
     /* null comparisons */
     if (left.kind == LizardValue::Kind::Null || right.kind == LizardValue::Kind::Null) {
-        bool bothNull = (left.kind == LizardValue::Kind::Null &&
-                         right.kind == LizardValue::Kind::Null);
+        bool bothNull =
+            (left.kind == LizardValue::Kind::Null && right.kind == LizardValue::Kind::Null);
         if (op == "==") return LizardValue::makeBool(bothNull);
         if (op == "!=") return LizardValue::makeBool(!bothNull);
 
         LizardError err;
-        err.code     = "E044";
-        err.message  = "cannot order-compare null with '" + op + "'";
+        err.code = "E044";
+        err.message = "cannot order-compare null with '" + op + "'";
         err.filepath = filepath_;
-        err.line     = node.line; err.col = node.col;
-        err.length   = static_cast<int>(op.size());
-        err.tip      = "null supports only '==' and '!='";
+        err.line = node.line;
+        err.col = node.col;
+        err.length = static_cast<int>(op.size());
+        err.tip = "null supports only '==' and '!='";
         reportError(err, source_);
         std::exit(1);
     }
@@ -253,8 +287,8 @@ LizardValue Interpreter::evalComparison(const LizardValue& left,
         double l = toDouble(left), r = toDouble(right);
         if (op == "==") return LizardValue::makeBool(l == r);
         if (op == "!=") return LizardValue::makeBool(l != r);
-        if (op == "<")  return LizardValue::makeBool(l <  r);
-        if (op == ">")  return LizardValue::makeBool(l >  r);
+        if (op == "<") return LizardValue::makeBool(l < r);
+        if (op == ">") return LizardValue::makeBool(l > r);
         if (op == "<=") return LizardValue::makeBool(l <= r);
         if (op == ">=") return LizardValue::makeBool(l >= r);
     }
@@ -263,8 +297,8 @@ LizardValue Interpreter::evalComparison(const LizardValue& left,
     if (left.kind == LizardValue::Kind::String && right.kind == LizardValue::Kind::String) {
         if (op == "==") return LizardValue::makeBool(left.raw == right.raw);
         if (op == "!=") return LizardValue::makeBool(left.raw != right.raw);
-        if (op == "<")  return LizardValue::makeBool(left.raw <  right.raw);
-        if (op == ">")  return LizardValue::makeBool(left.raw >  right.raw);
+        if (op == "<") return LizardValue::makeBool(left.raw < right.raw);
+        if (op == ">") return LizardValue::makeBool(left.raw > right.raw);
         if (op == "<=") return LizardValue::makeBool(left.raw <= right.raw);
         if (op == ">=") return LizardValue::makeBool(left.raw >= right.raw);
     }
@@ -274,28 +308,27 @@ LizardValue Interpreter::evalComparison(const LizardValue& left,
     if (op == "!=") return LizardValue::makeBool(true);
 
     LizardError err;
-    err.code     = "E044";
-    err.message  = "cannot compare these types with '" + op + "'";
+    err.code = "E044";
+    err.message = "cannot compare these types with '" + op + "'";
     err.filepath = filepath_;
-    err.line     = node.line; err.col = node.col;
-    err.length   = static_cast<int>(op.size());
+    err.line = node.line;
+    err.col = node.col;
+    err.length = static_cast<int>(op.size());
     reportError(err, source_);
     std::exit(1);
 }
 
 LizardValue Interpreter::evalBinary(const BinaryExprNode& node) {
-    LizardValue left  = evalValue(*node.left);
+    LizardValue left = evalValue(*node.left);
     LizardValue right = evalValue(*node.right);
     const std::string& op = node.op;
 
-    if (op == "==" || op == "!=" || op == "<" ||
-        op == ">"  || op == "<=" || op == ">=")
+    if (op == "==" || op == "!=" || op == "<" || op == ">" || op == "<=" || op == ">=")
         return evalComparison(left, right, op, node);
 
     /* String concatenation: '+' joins when either side is a string. */
     if (op == "+") {
-        if (left.kind  == LizardValue::Kind::String ||
-            right.kind == LizardValue::Kind::String)
+        if (left.kind == LizardValue::Kind::String || right.kind == LizardValue::Kind::String)
             return LizardValue::makeString(left.display() + right.display());
     }
 
@@ -304,17 +337,20 @@ LizardValue Interpreter::evalBinary(const BinaryExprNode& node) {
     if (isBitwise) {
         if (!isIntLike(left) || !isIntLike(right)) {
             LizardError err;
-            err.code = "E043"; err.message = "operator '" + op + "' requires integer operands";
-            err.filepath = filepath_; err.line = node.line; err.col = node.col;
+            err.code = "E043";
+            err.message = "operator '" + op + "' requires integer operands";
+            err.filepath = filepath_;
+            err.line = node.line;
+            err.col = node.col;
             err.length = static_cast<int>(op.size());
             err.tip = "bitwise operations are only valid on 'int' and 'bool' values";
             reportError(err, source_);
             std::exit(1);
         }
         long long l = toInt(left), r = toInt(right);
-        if (op == "&")  return LizardValue::makeInt(std::to_string(l & r));
-        if (op == "|")  return LizardValue::makeInt(std::to_string(l | r));
-        if (op == "^")  return LizardValue::makeInt(std::to_string(l ^ r));
+        if (op == "&") return LizardValue::makeInt(std::to_string(l & r));
+        if (op == "|") return LizardValue::makeInt(std::to_string(l | r));
+        if (op == "^") return LizardValue::makeInt(std::to_string(l ^ r));
         if (op == "<<") return LizardValue::makeInt(std::to_string(l << r));
         if (op == ">>") return LizardValue::makeInt(std::to_string(l >> r));
     }
@@ -323,16 +359,24 @@ LizardValue Interpreter::evalBinary(const BinaryExprNode& node) {
     if (op == "%") {
         if (!isIntLike(left) || !isIntLike(right)) {
             LizardError err;
-            err.code = "E040"; err.message = "operator '%' requires integer operands";
-            err.filepath = filepath_; err.line = node.line; err.col = node.col; err.length = 1;
+            err.code = "E040";
+            err.message = "operator '%' requires integer operands";
+            err.filepath = filepath_;
+            err.line = node.line;
+            err.col = node.col;
+            err.length = 1;
             reportError(err, source_);
             std::exit(1);
         }
         long long l = toInt(left), r = toInt(right);
         if (r == 0) {
             LizardError err;
-            err.code = "E042"; err.message = "modulo by zero";
-            err.filepath = filepath_; err.line = node.line; err.col = node.col; err.length = 1;
+            err.code = "E042";
+            err.message = "modulo by zero";
+            err.filepath = filepath_;
+            err.line = node.line;
+            err.col = node.col;
+            err.length = 1;
             reportError(err, source_);
             std::exit(1);
         }
@@ -342,8 +386,11 @@ LizardValue Interpreter::evalBinary(const BinaryExprNode& node) {
     /* Arithmetic: +, -, *, / */
     if (!isNumeric(left) || !isNumeric(right)) {
         LizardError err;
-        err.code = "E040"; err.message = "operator '" + op + "' cannot be applied to these types";
-        err.filepath = filepath_; err.line = node.line; err.col = node.col;
+        err.code = "E040";
+        err.message = "operator '" + op + "' cannot be applied to these types";
+        err.filepath = filepath_;
+        err.line = node.line;
+        err.col = node.col;
         err.length = static_cast<int>(op.size());
         if (left.kind == LizardValue::Kind::String || right.kind == LizardValue::Kind::String)
             err.tip = "'+' is the only operator that works with strings (concatenation)";
@@ -358,8 +405,12 @@ LizardValue Interpreter::evalBinary(const BinaryExprNode& node) {
     if (op == "/") {
         if (r == 0.0) {
             LizardError err;
-            err.code = "E041"; err.message = "division by zero";
-            err.filepath = filepath_; err.line = node.line; err.col = node.col; err.length = 1;
+            err.code = "E041";
+            err.message = "division by zero";
+            err.filepath = filepath_;
+            err.line = node.line;
+            err.col = node.col;
+            err.length = 1;
             reportError(err, source_);
             std::exit(1);
         }
@@ -372,14 +423,17 @@ LizardValue Interpreter::evalBinary(const BinaryExprNode& node) {
 LizardValue Interpreter::evalUnary(const UnaryExprNode& node) {
     LizardValue operand = evalValue(*node.operand);
 
-    if (node.op == "!" || node.op == "not")
-        return LizardValue::makeBool(!isTruthy(operand));
+    if (node.op == "!" || node.op == "not") return LizardValue::makeBool(!isTruthy(operand));
 
     if (node.op == "-") {
         if (!isNumeric(operand)) {
             LizardError err;
-            err.code = "E040"; err.message = "unary '-' cannot be applied to a non-numeric value";
-            err.filepath = filepath_; err.line = node.line; err.col = node.col; err.length = 1;
+            err.code = "E040";
+            err.message = "unary '-' cannot be applied to a non-numeric value";
+            err.filepath = filepath_;
+            err.line = node.line;
+            err.col = node.col;
+            err.length = 1;
             reportError(err, source_);
             std::exit(1);
         }
@@ -389,8 +443,12 @@ LizardValue Interpreter::evalUnary(const UnaryExprNode& node) {
     if (node.op == "~") {
         if (!isIntLike(operand)) {
             LizardError err;
-            err.code = "E043"; err.message = "bitwise NOT '~' requires an integer operand";
-            err.filepath = filepath_; err.line = node.line; err.col = node.col; err.length = 1;
+            err.code = "E043";
+            err.message = "bitwise NOT '~' requires an integer operand";
+            err.filepath = filepath_;
+            err.line = node.line;
+            err.col = node.col;
+            err.length = 1;
             err.tip = "bitwise operations are only valid on 'int' and 'bool' values";
             reportError(err, source_);
             std::exit(1);
@@ -405,18 +463,21 @@ void Interpreter::executeIf(const IfStatement& node) {
     LZ_DEBUG("if at line " << node.line);
 
     if (isTruthy(evalValue(*node.condition))) {
-        for (const auto& stmt : node.then_body) executeStatement(*stmt);
+        for (const auto& stmt : node.then_body)
+            executeStatement(*stmt);
         return;
     }
 
     for (const auto& clause : node.elif_clauses) {
         if (isTruthy(evalValue(*clause.condition))) {
-            for (const auto& stmt : clause.body) executeStatement(*stmt);
+            for (const auto& stmt : clause.body)
+                executeStatement(*stmt);
             return;
         }
     }
 
-    for (const auto& stmt : node.else_body) executeStatement(*stmt);
+    for (const auto& stmt : node.else_body)
+        executeStatement(*stmt);
 }
 
 LizardValue Interpreter::evalPropertyAccess(const PropertyAccessNode& node) {
@@ -424,11 +485,15 @@ LizardValue Interpreter::evalPropertyAccess(const PropertyAccessNode& node) {
 
     if (obj.kind != LizardValue::Kind::Object) {
         LizardError err;
-        err.code = "E050"; err.message = "cannot access property '" + node.property + "' on a non-object value";
-        err.filepath = filepath_; err.line = node.line; err.col = node.col;
+        err.code = "E050";
+        err.message = "cannot access property '" + node.property + "' on a non-object value";
+        err.filepath = filepath_;
+        err.line = node.line;
+        err.col = node.col;
         err.length = static_cast<int>(node.property.size());
         err.tip = "property access with '.' is only valid on object values created with #{}";
-        reportError(err, source_); std::exit(1);
+        reportError(err, source_);
+        std::exit(1);
     }
 
     return obj.object_data->get(node.property); // returns null if key is missing
@@ -441,9 +506,14 @@ LizardValue Interpreter::evalIndexAccess(const IndexExprNode& node) {
     if (obj.kind == LizardValue::Kind::Array) {
         if (idx.kind != LizardValue::Kind::Integer && idx.kind != LizardValue::Kind::Bool) {
             LizardError err;
-            err.code = "E051"; err.message = "array index must be an integer";
-            err.filepath = filepath_; err.line = node.line; err.col = node.col; err.length = 1;
-            reportError(err, source_); std::exit(1);
+            err.code = "E051";
+            err.message = "array index must be an integer";
+            err.filepath = filepath_;
+            err.line = node.line;
+            err.col = node.col;
+            err.length = 1;
+            reportError(err, source_);
+            std::exit(1);
         }
         long long i = toInt(idx);
         auto& elements = obj.array_data->elements;
@@ -453,11 +523,17 @@ LizardValue Interpreter::evalIndexAccess(const IndexExprNode& node) {
 
         if (i < 0 || i >= static_cast<long long>(elements.size())) {
             LizardError err;
-            err.code = "E052"; err.message = "array index " + std::to_string(i) + " is out of bounds";
-            err.filepath = filepath_; err.line = node.line; err.col = node.col; err.length = 1;
-            err.tip = "array has " + std::to_string(elements.size()) + " element(s), valid indices are 0 to " +
+            err.code = "E052";
+            err.message = "array index " + std::to_string(i) + " is out of bounds";
+            err.filepath = filepath_;
+            err.line = node.line;
+            err.col = node.col;
+            err.length = 1;
+            err.tip = "array has " + std::to_string(elements.size()) +
+                      " element(s), valid indices are 0 to " +
                       std::to_string(static_cast<long long>(elements.size()) - 1);
-            reportError(err, source_); std::exit(1);
+            reportError(err, source_);
+            std::exit(1);
         }
         return elements[static_cast<size_t>(i)];
     }
@@ -467,9 +543,14 @@ LizardValue Interpreter::evalIndexAccess(const IndexExprNode& node) {
     }
 
     LizardError err;
-    err.code = "E053"; err.message = "cannot index into a non-array/non-object value";
-    err.filepath = filepath_; err.line = node.line; err.col = node.col; err.length = 1;
-    reportError(err, source_); std::exit(1);
+    err.code = "E053";
+    err.message = "cannot index into a non-array/non-object value";
+    err.filepath = filepath_;
+    err.line = node.line;
+    err.col = node.col;
+    err.length = 1;
+    reportError(err, source_);
+    std::exit(1);
 }
 
 void Interpreter::executeLValueAssign(const LValueAssignStatement& node) {
@@ -479,10 +560,14 @@ void Interpreter::executeLValueAssign(const LValueAssignStatement& node) {
         LizardValue obj = evalValue(*prop->object);
         if (obj.kind != LizardValue::Kind::Object) {
             LizardError err;
-            err.code = "E050"; err.message = "cannot set property '" + prop->property + "' on a non-object";
-            err.filepath = filepath_; err.line = node.line; err.col = node.col;
+            err.code = "E050";
+            err.message = "cannot set property '" + prop->property + "' on a non-object";
+            err.filepath = filepath_;
+            err.line = node.line;
+            err.col = node.col;
             err.length = static_cast<int>(prop->property.size());
-            reportError(err, source_); std::exit(1);
+            reportError(err, source_);
+            std::exit(1);
         }
         // Reference semantics: modifies the shared object directly
         obj.object_data->set(prop->property, std::move(val));
@@ -490,7 +575,7 @@ void Interpreter::executeLValueAssign(const LValueAssignStatement& node) {
     }
 
     if (const auto* idx = dynamic_cast<const IndexExprNode*>(node.target.get())) {
-        LizardValue obj   = evalValue(*idx->object);
+        LizardValue obj = evalValue(*idx->object);
         LizardValue index = evalValue(*idx->index);
 
         if (obj.kind == LizardValue::Kind::Array) {
@@ -499,9 +584,14 @@ void Interpreter::executeLValueAssign(const LValueAssignStatement& node) {
             if (i < 0) i = static_cast<long long>(elements.size()) + i;
             if (i < 0 || i >= static_cast<long long>(elements.size())) {
                 LizardError err;
-                err.code = "E052"; err.message = "array index " + std::to_string(i) + " is out of bounds";
-                err.filepath = filepath_; err.line = node.line; err.col = node.col; err.length = 1;
-                reportError(err, source_); std::exit(1);
+                err.code = "E052";
+                err.message = "array index " + std::to_string(i) + " is out of bounds";
+                err.filepath = filepath_;
+                err.line = node.line;
+                err.col = node.col;
+                err.length = 1;
+                reportError(err, source_);
+                std::exit(1);
             }
             elements[static_cast<size_t>(i)] = std::move(val);
             return;
@@ -513,8 +603,13 @@ void Interpreter::executeLValueAssign(const LValueAssignStatement& node) {
         }
 
         LizardError err;
-        err.code = "E053"; err.message = "cannot index-assign into a non-array/non-object value";
-        err.filepath = filepath_; err.line = node.line; err.col = node.col; err.length = 1;
-        reportError(err, source_); std::exit(1);
+        err.code = "E053";
+        err.message = "cannot index-assign into a non-array/non-object value";
+        err.filepath = filepath_;
+        err.line = node.line;
+        err.col = node.col;
+        err.length = 1;
+        reportError(err, source_);
+        std::exit(1);
     }
 }

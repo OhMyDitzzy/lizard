@@ -1,6 +1,6 @@
 #include "lexer.hpp"
-#include "../error/error.hpp"
 #include "../debug.hpp"
+#include "../error/error.hpp"
 #include <cctype>
 #include <cstdlib>
 
@@ -20,33 +20,48 @@ char Lexer::peek(int offset) const {
 
 void Lexer::advance() {
     if (pos_ >= source_.size()) return;
-    if (source_[pos_] == '\n') { line_++; col_ = 1; }
-    else                       { col_++; }
+    if (source_[pos_] == '\n') {
+        line_++;
+        col_ = 1;
+    } else {
+        col_++;
+    }
     pos_++;
 }
 
 void Lexer::skipWhitespace() {
     while (pos_ < source_.size()) {
         char c = current();
-        if (c == ' ' || c == '\t' || c == '\r' || c == '\n') advance();
-        else break;
+        if (c == ' ' || c == '\t' || c == '\r' || c == '\n')
+            advance();
+        else
+            break;
     }
 }
 
 void Lexer::skipLineComment() {
-    while (pos_ < source_.size() && current() != '\n') advance();
+    while (pos_ < source_.size() && current() != '\n')
+        advance();
 }
 
 void Lexer::skipBlockComment() {
     int startLine = line_, startCol = col_;
     while (pos_ < source_.size()) {
-        if (current() == '*' && peek() == '/') { advance(); advance(); return; }
+        if (current() == '*' && peek() == '/') {
+            advance();
+            advance();
+            return;
+        }
         advance();
     }
     LizardError err;
-    err.code = "E003"; err.message = "unterminated block comment";
-    err.filepath = filepath_; err.line = startLine; err.col = startCol;
-    err.length = 2; err.tip = "block comments must be closed with */";
+    err.code = "E003";
+    err.message = "unterminated block comment";
+    err.filepath = filepath_;
+    err.line = startLine;
+    err.col = startCol;
+    err.length = 2;
+    err.tip = "block comments must be closed with */";
     reportError(err, source_);
     std::exit(1);
 }
@@ -63,43 +78,64 @@ Token Lexer::readString(char quote) {
             advance();
             char esc = current();
 
-            if      (esc == 'n')  { value += '\n';   advance(); }
-            else if (esc == 't')  { value += '\t';   advance(); }
-            else if (esc == 'r')  { value += '\r';   advance(); }
-            else if (esc == '"')  { value += '"';    advance(); }
-            else if (esc == '\'') { value += '\'';   advance(); }
-            else if (esc == '\\') { value += '\\';   advance(); }
-            else if (esc == 'e')  { value += '\033'; advance(); }
-            else if (esc == '0' && (peek() < '0' || peek() > '7')) {
-                value += '\0'; advance();
-            }
-            else if (esc == 'x') {
+            if (esc == 'n') {
+                value += '\n';
+                advance();
+            } else if (esc == 't') {
+                value += '\t';
+                advance();
+            } else if (esc == 'r') {
+                value += '\r';
+                advance();
+            } else if (esc == '"') {
+                value += '"';
+                advance();
+            } else if (esc == '\'') {
+                value += '\'';
+                advance();
+            } else if (esc == '\\') {
+                value += '\\';
+                advance();
+            } else if (esc == 'e') {
+                value += '\033';
+                advance();
+            } else if (esc == '0' && (peek() < '0' || peek() > '7')) {
+                value += '\0';
+                advance();
+            } else if (esc == 'x') {
                 advance();
                 std::string hex;
                 while (hex.size() < 2 && pos_ < source_.size() && std::isxdigit(current())) {
-                    hex += current(); advance();
+                    hex += current();
+                    advance();
                 }
                 value += hex.empty() ? 'x' : static_cast<char>(std::stoi(hex, nullptr, 16));
-            }
-            else if (esc >= '0' && esc <= '7') {
+            } else if (esc >= '0' && esc <= '7') {
                 std::string oct(1, esc);
                 advance();
-                while (oct.size() < 3 && pos_ < source_.size() &&
-                       current() >= '0' && current() <= '7') {
-                    oct += current(); advance();
+                while (oct.size() < 3 && pos_ < source_.size() && current() >= '0' &&
+                       current() <= '7') {
+                    oct += current();
+                    advance();
                 }
                 value += static_cast<char>(std::stoi(oct, nullptr, 8));
+            } else {
+                value += esc;
+                advance();
             }
-            else { value += esc; advance(); }
         } else {
-            value += current(); advance();
+            value += current();
+            advance();
         }
     }
 
     if (pos_ >= source_.size() || current() != quote) {
         LizardError err;
-        err.code = "E001"; err.message = "unterminated string literal";
-        err.filepath = filepath_; err.line = startLine; err.col = startCol;
+        err.code = "E001";
+        err.message = "unterminated string literal";
+        err.filepath = filepath_;
+        err.line = startLine;
+        err.col = startCol;
         err.length = 1;
         err.tip = std::string("string literals must be closed with a matching ") + quote;
         reportError(err, source_);
@@ -129,7 +165,9 @@ Token Lexer::readMultilineString() {
         }
 
         if (c == '\\' && peek() == '`') {
-            value += '`'; advance(); advance();
+            value += '`';
+            advance();
+            advance();
             continue;
         }
 
@@ -138,9 +176,13 @@ Token Lexer::readMultilineString() {
     }
 
     LizardError err;
-    err.code = "E001"; err.message = "unterminated multiline string";
-    err.filepath = filepath_; err.line = startLine; err.col = startCol;
-    err.length = 1; err.tip = "multiline strings must be closed with a matching '`'";
+    err.code = "E001";
+    err.message = "unterminated multiline string";
+    err.filepath = filepath_;
+    err.line = startLine;
+    err.col = startCol;
+    err.length = 1;
+    err.tip = "multiline strings must be closed with a matching '`'";
     reportError(err, source_);
     std::exit(1);
 }
@@ -152,11 +194,15 @@ Token Lexer::readNumber() {
 
     while (pos_ < source_.size()) {
         char c = current();
-        if (std::isdigit(c)) { value += c; advance(); }
-        else if (c == '.' && !isFloat && std::isdigit(peek())) {
-            isFloat = true; value += c; advance();
-        }
-        else break;
+        if (std::isdigit(c)) {
+            value += c;
+            advance();
+        } else if (c == '.' && !isFloat && std::isdigit(peek())) {
+            isFloat = true;
+            value += c;
+            advance();
+        } else
+            break;
     }
 
     return Token{isFloat ? TokenType::Float : TokenType::Integer, value, startLine, startCol};
@@ -167,21 +213,22 @@ Token Lexer::readIdentifierOrKeyword() {
     std::string value;
 
     while (pos_ < source_.size() && (std::isalnum(current()) || current() == '_')) {
-        value += current(); advance();
+        value += current();
+        advance();
     }
 
-    if (value == "show")  return Token{TokenType::Show,  value, startLine, startCol};
-    if (value == "let")   return Token{TokenType::Let,   value, startLine, startCol};
-    if (value == "var")   return Token{TokenType::Var,   value, startLine, startCol};
-    if (value == "true")  return Token{TokenType::True,  value, startLine, startCol};
+    if (value == "show") return Token{TokenType::Show, value, startLine, startCol};
+    if (value == "let") return Token{TokenType::Let, value, startLine, startCol};
+    if (value == "var") return Token{TokenType::Var, value, startLine, startCol};
+    if (value == "true") return Token{TokenType::True, value, startLine, startCol};
     if (value == "false") return Token{TokenType::False, value, startLine, startCol};
-    if (value == "null")  return Token{TokenType::Null,  value, startLine, startCol};
-    if (value == "and")   return Token{TokenType::And,   value, startLine, startCol};
-    if (value == "or")    return Token{TokenType::Or,    value, startLine, startCol};
-    if (value == "not")   return Token{TokenType::Not,   value, startLine, startCol};
-    if (value == "if")    return Token{TokenType::If,    value, startLine, startCol};
-    if (value == "elif")  return Token{TokenType::Elif,  value, startLine, startCol};
-    if (value == "else")  return Token{TokenType::Else,  value, startLine, startCol};
+    if (value == "null") return Token{TokenType::Null, value, startLine, startCol};
+    if (value == "and") return Token{TokenType::And, value, startLine, startCol};
+    if (value == "or") return Token{TokenType::Or, value, startLine, startCol};
+    if (value == "not") return Token{TokenType::Not, value, startLine, startCol};
+    if (value == "if") return Token{TokenType::If, value, startLine, startCol};
+    if (value == "elif") return Token{TokenType::Elif, value, startLine, startCol};
+    if (value == "else") return Token{TokenType::Else, value, startLine, startCol};
 
     return Token{TokenType::Identifier, value, startLine, startCol};
 }
@@ -215,21 +262,23 @@ Token Lexer::readFStringToken() {
         // Newline terminates single-line fstrings ("" and '') but not backtick ones.
         if (depth == 0 && c == '\n' && quote != '`') break;
 
-        if      (c == '{') depth++;
-        else if (c == '}' && depth > 0) depth--;
+        if (c == '{')
+            depth++;
+        else if (c == '}' && depth > 0)
+            depth--;
 
         raw += c;
         advance();
     }
 
     LizardError err;
-    err.code     = "E001";
-    err.message  = "unterminated format string";
+    err.code = "E001";
+    err.message = "unterminated format string";
     err.filepath = filepath_;
-    err.line     = startLine;
-    err.col      = startCol;
-    err.length   = 2;
-    err.tip      = std::string("format strings must end with a matching ") + quote;
+    err.line = startLine;
+    err.col = startCol;
+    err.length = 2;
+    err.tip = std::string("format strings must end with a matching ") + quote;
     reportError(err, source_);
     std::exit(1);
 }
@@ -244,12 +293,22 @@ std::vector<Token> Lexer::tokenize() {
             break;
         }
 
-        if (current() == '/' && peek() == '/') { advance(); advance(); skipLineComment();  continue; }
-        if (current() == '/' && peek() == '*') { advance(); advance(); skipBlockComment(); continue; }
+        if (current() == '/' && peek() == '/') {
+            advance();
+            advance();
+            skipLineComment();
+            continue;
+        }
+        if (current() == '/' && peek() == '*') {
+            advance();
+            advance();
+            skipBlockComment();
+            continue;
+        }
 
-        char c        = current();
-        int  tokenLine = line_;
-        int  tokenCol  = col_;
+        char c = current();
+        int tokenLine = line_;
+        int tokenCol = col_;
 
         if (c == '"' || c == '\'') {
             tokens.push_back(readString(c));
@@ -263,75 +322,129 @@ std::vector<Token> Lexer::tokenize() {
         } else if (std::isalpha(c) || c == '_') {
             tokens.push_back(readIdentifierOrKeyword());
         } else if (c == '(') {
-            advance(); tokens.push_back(Token{TokenType::LeftParen,    "(", tokenLine, tokenCol});
+            advance();
+            tokens.push_back(Token{TokenType::LeftParen, "(", tokenLine, tokenCol});
         } else if (c == ')') {
-            advance(); tokens.push_back(Token{TokenType::RightParen,   ")", tokenLine, tokenCol});
+            advance();
+            tokens.push_back(Token{TokenType::RightParen, ")", tokenLine, tokenCol});
         } else if (c == '[') {
-            advance(); tokens.push_back(Token{TokenType::LeftBracket,  "[", tokenLine, tokenCol});
+            advance();
+            tokens.push_back(Token{TokenType::LeftBracket, "[", tokenLine, tokenCol});
         } else if (c == ']') {
-            advance(); tokens.push_back(Token{TokenType::RightBracket, "]", tokenLine, tokenCol});
+            advance();
+            tokens.push_back(Token{TokenType::RightBracket, "]", tokenLine, tokenCol});
         } else if (c == '.') {
-            advance(); tokens.push_back(Token{TokenType::Dot,          ".", tokenLine, tokenCol});
+            advance();
+            tokens.push_back(Token{TokenType::Dot, ".", tokenLine, tokenCol});
         } else if (c == '#') {
-            advance(); tokens.push_back(Token{TokenType::Hash,         "#", tokenLine, tokenCol});
+            advance();
+            tokens.push_back(Token{TokenType::Hash, "#", tokenLine, tokenCol});
         } else if (c == ',') {
-            advance(); tokens.push_back(Token{TokenType::Comma, ",", tokenLine, tokenCol});
+            advance();
+            tokens.push_back(Token{TokenType::Comma, ",", tokenLine, tokenCol});
         } else if (c == ':') {
-            advance(); tokens.push_back(Token{TokenType::Colon,     ":", tokenLine, tokenCol});
+            advance();
+            tokens.push_back(Token{TokenType::Colon, ":", tokenLine, tokenCol});
         } else if (c == ';') {
-            advance(); tokens.push_back(Token{TokenType::Semicolon,  ";", tokenLine, tokenCol});
+            advance();
+            tokens.push_back(Token{TokenType::Semicolon, ";", tokenLine, tokenCol});
         } else if (c == '{') {
-            advance(); tokens.push_back(Token{TokenType::LeftBrace,  "{", tokenLine, tokenCol});
+            advance();
+            tokens.push_back(Token{TokenType::LeftBrace, "{", tokenLine, tokenCol});
         } else if (c == '}') {
-            advance(); tokens.push_back(Token{TokenType::RightBrace, "}", tokenLine, tokenCol});
+            advance();
+            tokens.push_back(Token{TokenType::RightBrace, "}", tokenLine, tokenCol});
         } else if (c == '+') {
-            advance(); tokens.push_back(Token{TokenType::Plus,    "+", tokenLine, tokenCol});
+            advance();
+            tokens.push_back(Token{TokenType::Plus, "+", tokenLine, tokenCol});
         } else if (c == '-') {
-            advance(); tokens.push_back(Token{TokenType::Minus,   "-", tokenLine, tokenCol});
+            advance();
+            tokens.push_back(Token{TokenType::Minus, "-", tokenLine, tokenCol});
         } else if (c == '*') {
-            advance(); tokens.push_back(Token{TokenType::Star,    "*", tokenLine, tokenCol});
+            advance();
+            tokens.push_back(Token{TokenType::Star, "*", tokenLine, tokenCol});
         } else if (c == '/') {
-            advance(); tokens.push_back(Token{TokenType::Slash,   "/", tokenLine, tokenCol});
+            advance();
+            tokens.push_back(Token{TokenType::Slash, "/", tokenLine, tokenCol});
         } else if (c == '%') {
-            advance(); tokens.push_back(Token{TokenType::Percent, "%", tokenLine, tokenCol});
+            advance();
+            tokens.push_back(Token{TokenType::Percent, "%", tokenLine, tokenCol});
         } else if (c == '^') {
-            advance(); tokens.push_back(Token{TokenType::Caret, "^", tokenLine, tokenCol});
+            advance();
+            tokens.push_back(Token{TokenType::Caret, "^", tokenLine, tokenCol});
         } else if (c == '~') {
-            advance(); tokens.push_back(Token{TokenType::Tilde, "~", tokenLine, tokenCol});
+            advance();
+            tokens.push_back(Token{TokenType::Tilde, "~", tokenLine, tokenCol});
         } else if (c == '=') {
             advance();
-            if (current() == '=') { advance(); tokens.push_back(Token{TokenType::EqualEqual, "==", tokenLine, tokenCol}); }
-            else                  {            tokens.push_back(Token{TokenType::Equals,      "=",  tokenLine, tokenCol}); }
+            if (current() == '=') {
+                advance();
+                tokens.push_back(Token{TokenType::EqualEqual, "==", tokenLine, tokenCol});
+            } else {
+                tokens.push_back(Token{TokenType::Equals, "=", tokenLine, tokenCol});
+            }
         } else if (c == '!') {
             advance();
-            if (current() == '=') { advance(); tokens.push_back(Token{TokenType::BangEqual, "!=", tokenLine, tokenCol}); }
-            else                  {            tokens.push_back(Token{TokenType::Bang,       "!",  tokenLine, tokenCol}); }
+            if (current() == '=') {
+                advance();
+                tokens.push_back(Token{TokenType::BangEqual, "!=", tokenLine, tokenCol});
+            } else {
+                tokens.push_back(Token{TokenType::Bang, "!", tokenLine, tokenCol});
+            }
         } else if (c == '?') {
             advance();
-            if (current() == '?') { advance(); tokens.push_back(Token{TokenType::QuestionQuestion, "??", tokenLine, tokenCol}); }
-            else                  {            tokens.push_back(Token{TokenType::Question,          "?",  tokenLine, tokenCol}); }
+            if (current() == '?') {
+                advance();
+                tokens.push_back(Token{TokenType::QuestionQuestion, "??", tokenLine, tokenCol});
+            } else {
+                tokens.push_back(Token{TokenType::Question, "?", tokenLine, tokenCol});
+            }
         } else if (c == '&') {
             advance();
-            if (current() == '&') { advance(); tokens.push_back(Token{TokenType::AmpAmp,    "&&", tokenLine, tokenCol}); }
-            else                  {            tokens.push_back(Token{TokenType::Ampersand,  "&",  tokenLine, tokenCol}); }
+            if (current() == '&') {
+                advance();
+                tokens.push_back(Token{TokenType::AmpAmp, "&&", tokenLine, tokenCol});
+            } else {
+                tokens.push_back(Token{TokenType::Ampersand, "&", tokenLine, tokenCol});
+            }
         } else if (c == '|') {
             advance();
-            if (current() == '|') { advance(); tokens.push_back(Token{TokenType::PipePipe, "||", tokenLine, tokenCol}); }
-            else                  {            tokens.push_back(Token{TokenType::Pipe,      "|",  tokenLine, tokenCol}); }
+            if (current() == '|') {
+                advance();
+                tokens.push_back(Token{TokenType::PipePipe, "||", tokenLine, tokenCol});
+            } else {
+                tokens.push_back(Token{TokenType::Pipe, "|", tokenLine, tokenCol});
+            }
         } else if (c == '<') {
             advance();
-            if      (current() == '<') { advance(); tokens.push_back(Token{TokenType::LessLess,  "<<", tokenLine, tokenCol}); }
-            else if (current() == '=') { advance(); tokens.push_back(Token{TokenType::LessEqual, "<=", tokenLine, tokenCol}); }
-            else                       {            tokens.push_back(Token{TokenType::Less,       "<",  tokenLine, tokenCol}); }
+            if (current() == '<') {
+                advance();
+                tokens.push_back(Token{TokenType::LessLess, "<<", tokenLine, tokenCol});
+            } else if (current() == '=') {
+                advance();
+                tokens.push_back(Token{TokenType::LessEqual, "<=", tokenLine, tokenCol});
+            } else {
+                tokens.push_back(Token{TokenType::Less, "<", tokenLine, tokenCol});
+            }
         } else if (c == '>') {
             advance();
-            if      (current() == '>') { advance(); tokens.push_back(Token{TokenType::GreaterGreater, ">>", tokenLine, tokenCol}); }
-            else if (current() == '=') { advance(); tokens.push_back(Token{TokenType::GreaterEqual,   ">=", tokenLine, tokenCol}); }
-            else                       {            tokens.push_back(Token{TokenType::Greater,         ">",  tokenLine, tokenCol}); }
+            if (current() == '>') {
+                advance();
+                tokens.push_back(Token{TokenType::GreaterGreater, ">>", tokenLine, tokenCol});
+            } else if (current() == '=') {
+                advance();
+                tokens.push_back(Token{TokenType::GreaterEqual, ">=", tokenLine, tokenCol});
+            } else {
+                tokens.push_back(Token{TokenType::Greater, ">", tokenLine, tokenCol});
+            }
         } else {
             LizardError err;
-            err.code = "E002"; err.message = std::string("unexpected character '") + c + "'";
-            err.filepath = filepath_; err.line = tokenLine; err.col = tokenCol; err.length = 1;
+            err.code = "E002";
+            err.message = std::string("unexpected character '") + c + "'";
+            err.filepath = filepath_;
+            err.line = tokenLine;
+            err.col = tokenCol;
+            err.length = 1;
             reportError(err, source_);
             std::exit(1);
         }

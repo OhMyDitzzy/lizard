@@ -8,10 +8,10 @@
  * case show("hello") just works.
  */
 struct ShowArgs {
-    std::vector<std::string> values;        // positional values in source order
-    std::string              start_ln = ""; // printed once before all values
-    std::string              end_ln   = "\n"; // printed once after all values
-    std::string              sep      = " "; // inserted between consecutive values
+    std::vector<std::string> values; // positional values in source order
+    std::string start_ln = "";       // printed once before all values
+    std::string end_ln = "\n";       // printed once after all values
+    std::string sep = " ";           // inserted between consecutive values
 };
 
 /* Write the show() output to stdout according to ShowArgs. */

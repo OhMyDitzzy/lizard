@@ -1,9 +1,9 @@
 #pragma once
-#include <string>
-#include <vector>
-#include <unordered_map>
 #include <memory>
 #include <sstream>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 /* Forward declarations for circular references between LizardValue and collections. */
 struct LizardArray;
@@ -19,21 +19,21 @@ struct LizardObject;
 struct LizardValue {
     enum class Kind { String, Integer, Float, Bool, Null, Array, Object };
 
-    Kind        kind       = Kind::String;
-    std::string raw;                             // storage for primitive types
-    std::shared_ptr<LizardArray>  array_data;   // used when kind == Array
-    std::shared_ptr<LizardObject> object_data;  // used when kind == Object
+    Kind kind = Kind::String;
+    std::string raw;                           // storage for primitive types
+    std::shared_ptr<LizardArray> array_data;   // used when kind == Array
+    std::shared_ptr<LizardObject> object_data; // used when kind == Object
 
     std::string display() const;
 
     /* Primitive constructors — shared_ptrs explicitly null-initialized. */
-    static LizardValue makeString(const std::string& s) { return {Kind::String,  s, {}, {}}; }
-    static LizardValue makeInt   (const std::string& s) { return {Kind::Integer, s, {}, {}}; }
-    static LizardValue makeFloat (const std::string& s) { return {Kind::Float,   s, {}, {}}; }
-    static LizardValue makeBool  (bool b)               { return {Kind::Bool, b ? "1" : "0", {}, {}}; }
-    static LizardValue makeNull  ()                     { return {Kind::Null, "", {}, {}}; }
+    static LizardValue makeString(const std::string& s) { return {Kind::String, s, {}, {}}; }
+    static LizardValue makeInt(const std::string& s) { return {Kind::Integer, s, {}, {}}; }
+    static LizardValue makeFloat(const std::string& s) { return {Kind::Float, s, {}, {}}; }
+    static LizardValue makeBool(bool b) { return {Kind::Bool, b ? "1" : "0", {}, {}}; }
+    static LizardValue makeNull() { return {Kind::Null, "", {}, {}}; }
 
-    static LizardValue makeArray (std::shared_ptr<LizardArray>  data);
+    static LizardValue makeArray(std::shared_ptr<LizardArray> data);
     static LizardValue makeObject(std::shared_ptr<LizardObject> data);
 };
 
@@ -42,7 +42,7 @@ struct LizardArray {
 };
 
 struct LizardObject {
-    std::vector<std::string>                     key_order; // insertion order for display
+    std::vector<std::string> key_order; // insertion order for display
     std::unordered_map<std::string, LizardValue> fields;
 
     /* Set or overwrite a key, tracking insertion order for new keys. */
@@ -62,11 +62,17 @@ struct LizardObject {
 /* Defined here (after both LizardArray and LizardObject are complete). */
 
 inline LizardValue LizardValue::makeArray(std::shared_ptr<LizardArray> data) {
-    LizardValue v; v.kind = Kind::Array; v.array_data = std::move(data); return v;
+    LizardValue v;
+    v.kind = Kind::Array;
+    v.array_data = std::move(data);
+    return v;
 }
 
 inline LizardValue LizardValue::makeObject(std::shared_ptr<LizardObject> data) {
-    LizardValue v; v.kind = Kind::Object; v.object_data = std::move(data); return v;
+    LizardValue v;
+    v.kind = Kind::Object;
+    v.object_data = std::move(data);
+    return v;
 }
 
 /*
@@ -83,8 +89,10 @@ inline std::string LizardValue::display() const {
         for (size_t i = 0; i < array_data->elements.size(); i++) {
             if (i > 0) oss << ", ";
             const auto& el = array_data->elements[i];
-            if (el.kind == Kind::String) oss << '"' << el.raw << '"';
-            else                         oss << el.display();
+            if (el.kind == Kind::String)
+                oss << '"' << el.raw << '"';
+            else
+                oss << el.display();
         }
         oss << "]";
         return oss.str();
@@ -99,8 +107,10 @@ inline std::string LizardValue::display() const {
             first = false;
             const auto& val = object_data->fields.at(key);
             oss << key << ": ";
-            if (val.kind == Kind::String) oss << '"' << val.raw << '"';
-            else                          oss << val.display();
+            if (val.kind == Kind::String)
+                oss << '"' << val.raw << '"';
+            else
+                oss << val.display();
         }
         oss << " }";
         return oss.str();

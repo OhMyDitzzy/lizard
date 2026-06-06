@@ -21,8 +21,7 @@ void builtin_show(const ShowArgs& args) {
 
     // Flush when end_ln does not contain a newline so partial lines
     // (e.g. prompts written with end_ln: "") appear immediately.
-    bool endsWithNewline = !args.end_ln.empty() &&
-                           args.end_ln.back() == '\n';
+    bool endsWithNewline = !args.end_ln.empty() && args.end_ln.back() == '\n';
     if (!endsWithNewline) {
         std::cout.flush();
     }

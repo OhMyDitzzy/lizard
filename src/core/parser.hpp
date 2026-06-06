@@ -1,23 +1,22 @@
 #pragma once
+#include "ast.hpp"
+#include "token.hpp"
+#include <memory>
 #include <string>
 #include <vector>
-#include <memory>
-#include "token.hpp"
-#include "ast.hpp"
 
 class Parser {
-public:
-    Parser(const std::string& filepath,
-           const std::string& source,
+  public:
+    Parser(const std::string& filepath, const std::string& source,
            const std::vector<Token>& tokens);
 
     Program parse();
 
-private:
-    std::string        filepath_;
-    std::string        source_;
+  private:
+    std::string filepath_;
+    std::string source_;
     std::vector<Token> tokens_;
-    size_t             pos_;
+    size_t pos_;
 
     const Token& current() const;
     const Token& peek(int offset = 1) const;
@@ -25,11 +24,11 @@ private:
     Token expect(TokenType type, const std::string& context);
 
     /* Statement parsers */
-    std::unique_ptr<ASTNode>          parseStatement();
+    std::unique_ptr<ASTNode> parseStatement();
     std::unique_ptr<VarDeclStatement> parseVarDecl(bool is_mutable);
-    std::unique_ptr<AssignStatement>  parseAssign();
-    std::unique_ptr<ShowStatement>    parseShow();
-    std::unique_ptr<IfStatement>      parseIf();
+    std::unique_ptr<AssignStatement> parseAssign();
+    std::unique_ptr<ShowStatement> parseShow();
+    std::unique_ptr<IfStatement> parseIf();
 
     /* Parse statements until ';' and return them as a block. */
     std::vector<std::unique_ptr<ASTNode>> parseBlock();

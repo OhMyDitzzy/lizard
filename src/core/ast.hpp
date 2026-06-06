@@ -1,8 +1,8 @@
 #pragma once
-#include <string>
-#include <vector>
 #include <memory>
+#include <string>
 #include <unordered_map>
+#include <vector>
 
 /*
  * Every node stores its source location so the interpreter can
@@ -11,14 +11,14 @@
  */
 struct ASTNode {
     int line = 0;
-    int col  = 0;
+    int col = 0;
     virtual ~ASTNode() = default;
 };
 
 /* A literal value: string, integer, float, bool, or null. */
 struct LiteralNode : ASTNode {
     enum class Kind { String, Integer, Float, Bool, Null };
-    Kind        kind;
+    Kind kind;
     std::string value;
 };
 
@@ -40,7 +40,7 @@ struct IdentifierNode : ASTNode {
  * for a future static analysis tool.
  */
 struct VarDeclStatement : ASTNode {
-    bool        is_mutable;
+    bool is_mutable;
     std::string name;
     std::string type_hint;
     std::unique_ptr<ASTNode> initializer;
@@ -66,20 +66,20 @@ struct AssignStatement : ASTNode {
  * Both can hold any evaluable expression, not just literals.
  */
 struct ShowStatement : ASTNode {
-    std::vector<std::unique_ptr<ASTNode>>                    args;
+    std::vector<std::unique_ptr<ASTNode>> args;
     std::unordered_map<std::string, std::unique_ptr<ASTNode>> named_args;
 };
 
 /* Binary expression: left op right. The op field holds the operator string. */
 struct BinaryExprNode : ASTNode {
-    std::string              op;
+    std::string op;
     std::unique_ptr<ASTNode> left;
     std::unique_ptr<ASTNode> right;
 };
 
 /* Unary expression: op operand. Currently supports '-', '~', '!', 'not'. */
 struct UnaryExprNode : ASTNode {
-    std::string              op;
+    std::string op;
     std::unique_ptr<ASTNode> operand;
 };
 
@@ -92,7 +92,7 @@ struct TernaryExprNode : ASTNode {
 
 /* One elif branch: its condition and the statements to run if it matches. */
 struct ElifClause {
-    std::unique_ptr<ASTNode>              condition;
+    std::unique_ptr<ASTNode> condition;
     std::vector<std::unique_ptr<ASTNode>> body;
 
     ElifClause() = default;
@@ -107,9 +107,9 @@ struct ElifClause {
  * elif / else branches are optional.
  */
 struct IfStatement : ASTNode {
-    std::unique_ptr<ASTNode>              condition;
+    std::unique_ptr<ASTNode> condition;
     std::vector<std::unique_ptr<ASTNode>> then_body;
-    std::vector<ElifClause>               elif_clauses;
+    std::vector<ElifClause> elif_clauses;
     std::vector<std::unique_ptr<ASTNode>> else_body;
 };
 
@@ -120,7 +120,7 @@ struct ArrayLiteralNode : ASTNode {
 
 /* One key-value pair inside an object literal. */
 struct ObjectPair {
-    std::string              key;
+    std::string key;
     std::unique_ptr<ASTNode> value;
 
     ObjectPair() = default;
@@ -136,7 +136,7 @@ struct ObjectLiteralNode : ASTNode {
 /* Property access expression: obj.name */
 struct PropertyAccessNode : ASTNode {
     std::unique_ptr<ASTNode> object;
-    std::string              property;
+    std::string property;
 };
 
 /* Index access expression: arr[expr] */
