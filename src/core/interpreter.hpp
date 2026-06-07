@@ -21,6 +21,7 @@ class Interpreter {
     void executeAssign(const AssignStatement& node);
     void executeIf(const IfStatement& node);
     void executeLValueAssign(const LValueAssignStatement& node);
+    void executeCompoundAssign(const CompoundAssignStatement& node);
 
     LizardValue evalValue(const ASTNode& node);
     LizardValue evalBinary(const BinaryExprNode& node);
@@ -29,6 +30,11 @@ class Interpreter {
                                const std::string& op, const BinaryExprNode& node);
     LizardValue evalPropertyAccess(const PropertyAccessNode& node);
     LizardValue evalIndexAccess(const IndexExprNode& node);
+
+    /* Read the current value of any lvalue expression. */
+    LizardValue readLValue(const ASTNode& target);
+    /* Write a value to any lvalue expression. */
+    void writeLValue(const ASTNode& target, LizardValue val);
 
     static bool isTruthy(const LizardValue& v);
 };

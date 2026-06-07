@@ -36,6 +36,10 @@ void Interpreter::executeStatement(const ASTNode& node) {
         executeLValueAssign(*s);
         return;
     }
+    if (const auto* s = dynamic_cast<const CompoundAssignStatement*>(&node)) {
+        executeCompoundAssign(*s);
+        return;
+    }
 
     LizardError err;
     err.code = "E020";
@@ -554,62 +558,184 @@ LizardValue Interpreter::evalIndexAccess(const IndexExprNode& node) {
 }
 
 void Interpreter::executeLValueAssign(const LValueAssignStatement& node) {
-    LizardValue val = evalValue(*node.value);
+    writeLValue(*node.target, evalValue(*node.value));
+}
 
-    if (const auto* prop = dynamic_cast<const PropertyAccessNode*>(node.target.get())) {
+LizardValue Interpreter::readLValue(const ASTNode& target) {
+    if (const auto* ident = dynamic_cast<const IdentifierNode*>(&target))
+        return env_.get(ident->name, filepath_, source_, ident->line, ident->col);
+    if (const auto* prop = dynamic_cast<const PropertyAccessNode*>(&target))
+        return evalPropertyAccess(*prop);
+    if (const auto* idx = dynamic_cast<const IndexExprNode*>(&target)) return evalIndexAccess(*idx);
+
+    LizardError err;
+    err.code = "E055";
+    err.message = "invalid assignment target";
+    err.filepath = filepath_;
+    err.line = target.line;
+    err.col = target.col;
+    err.length = 1;
+    reportError(err, source_);
+    std::exit(1);
+}
+
+void Interpreter::writeLValue(const ASTNode& target, LizardValue val) {
+    if (const auto* ident = dynamic_cast<const IdentifierNode*>(&target)) {
+        env_.assign(ident->name, val, filepath_, source_, ident->line, ident->col);
+        return;
+    }
+    if (const auto* prop = dynamic_cast<const PropertyAccessNode*>(&target)) {
         LizardValue obj = evalValue(*prop->object);
         if (obj.kind != LizardValue::Kind::Object) {
             LizardError err;
             err.code = "E050";
             err.message = "cannot set property '" + prop->property + "' on a non-object";
             err.filepath = filepath_;
-            err.line = node.line;
-            err.col = node.col;
+            err.line = prop->line;
+            err.col = prop->col;
             err.length = static_cast<int>(prop->property.size());
             reportError(err, source_);
             std::exit(1);
         }
-        // Reference semantics: modifies the shared object directly
         obj.object_data->set(prop->property, std::move(val));
         return;
     }
-
-    if (const auto* idx = dynamic_cast<const IndexExprNode*>(node.target.get())) {
+    if (const auto* idx = dynamic_cast<const IndexExprNode*>(&target)) {
         LizardValue obj = evalValue(*idx->object);
         LizardValue index = evalValue(*idx->index);
-
         if (obj.kind == LizardValue::Kind::Array) {
             long long i = toInt(index);
-            auto& elements = obj.array_data->elements;
-            if (i < 0) i = static_cast<long long>(elements.size()) + i;
-            if (i < 0 || i >= static_cast<long long>(elements.size())) {
+            auto& els = obj.array_data->elements;
+            if (i < 0) i = static_cast<long long>(els.size()) + i;
+            if (i < 0 || i >= static_cast<long long>(els.size())) {
                 LizardError err;
                 err.code = "E052";
-                err.message = "array index " + std::to_string(i) + " is out of bounds";
+                err.message = "array index " + std::to_string(i) + " out of bounds";
                 err.filepath = filepath_;
-                err.line = node.line;
-                err.col = node.col;
+                err.line = idx->line;
+                err.col = idx->col;
                 err.length = 1;
                 reportError(err, source_);
                 std::exit(1);
             }
-            elements[static_cast<size_t>(i)] = std::move(val);
+            els[static_cast<size_t>(i)] = std::move(val);
             return;
         }
-
         if (obj.kind == LizardValue::Kind::Object) {
             obj.object_data->set(index.display(), std::move(val));
             return;
         }
-
         LizardError err;
         err.code = "E053";
-        err.message = "cannot index-assign into a non-array/non-object value";
+        err.message = "cannot index into this value";
         err.filepath = filepath_;
-        err.line = node.line;
-        err.col = node.col;
+        err.line = idx->line;
+        err.col = idx->col;
         err.length = 1;
         reportError(err, source_);
         std::exit(1);
     }
+}
+
+void Interpreter::executeCompoundAssign(const CompoundAssignStatement& node) {
+    LizardValue cur = readLValue(*node.target);
+    LizardValue rhs = evalValue(*node.value);
+    const std::string& op = node.op;
+    LizardValue result;
+
+    // String concatenation via +=
+    if (op == "+" &&
+        (cur.kind == LizardValue::Kind::String || rhs.kind == LizardValue::Kind::String)) {
+        result = LizardValue::makeString(cur.display() + rhs.display());
+    }
+    // Bitwise compound assigns
+    else if (op == "&" || op == "|" || op == "^" || op == "<<" || op == ">>") {
+        if (!isIntLike(cur) || !isIntLike(rhs)) {
+            LizardError err;
+            err.code = "E043";
+            err.message = "operator '" + op + "=' requires integer operands";
+            err.filepath = filepath_;
+            err.line = node.line;
+            err.col = node.col;
+            err.length = static_cast<int>(op.size()) + 1;
+            err.tip = "bitwise operations are only valid on 'int' and 'bool' values";
+            reportError(err, source_);
+            std::exit(1);
+        }
+        long long l = toInt(cur), r = toInt(rhs);
+        if (op == "&")
+            result = LizardValue::makeInt(std::to_string(l & r));
+        else if (op == "|")
+            result = LizardValue::makeInt(std::to_string(l | r));
+        else if (op == "^")
+            result = LizardValue::makeInt(std::to_string(l ^ r));
+        else if (op == "<<")
+            result = LizardValue::makeInt(std::to_string(l << r));
+        else
+            result = LizardValue::makeInt(std::to_string(l >> r));
+    }
+    // Modulo
+    else if (op == "%") {
+        if (!isIntLike(cur) || !isIntLike(rhs)) {
+            LizardError err;
+            err.code = "E040";
+            err.message = "operator '%=' requires integer operands";
+            err.filepath = filepath_;
+            err.line = node.line;
+            err.col = node.col;
+            err.length = 2;
+            reportError(err, source_);
+            std::exit(1);
+        }
+        long long l = toInt(cur), r = toInt(rhs);
+        if (r == 0) {
+            LizardError err;
+            err.code = "E042";
+            err.message = "modulo by zero";
+            err.filepath = filepath_;
+            err.line = node.line;
+            err.col = node.col;
+            err.length = 2;
+            reportError(err, source_);
+            std::exit(1);
+        }
+        result = LizardValue::makeInt(std::to_string(l % r));
+    }
+    // Arithmetic: +, -, *, /
+    else {
+        if (!isNumeric(cur) || !isNumeric(rhs)) {
+            LizardError err;
+            err.code = "E040";
+            err.message = "operator '" + op + "=' cannot be applied to these types";
+            err.filepath = filepath_;
+            err.line = node.line;
+            err.col = node.col;
+            err.length = static_cast<int>(op.size()) + 1;
+            reportError(err, source_);
+            std::exit(1);
+        }
+        double l = toDouble(cur), r = toDouble(rhs);
+        if (op == "+")
+            result = smartNumeric(l + r);
+        else if (op == "-")
+            result = smartNumeric(l - r);
+        else if (op == "*")
+            result = smartNumeric(l * r);
+        else if (op == "/") {
+            if (r == 0.0) {
+                LizardError err;
+                err.code = "E041";
+                err.message = "division by zero";
+                err.filepath = filepath_;
+                err.line = node.line;
+                err.col = node.col;
+                err.length = 2;
+                reportError(err, source_);
+                std::exit(1);
+            }
+            result = smartNumeric(l / r);
+        }
+    }
+
+    writeLValue(*node.target, std::move(result));
 }

@@ -26,11 +26,13 @@ enum class TokenType {
     Identifier,
 
     /* Arithmetic operators */
-    Plus,    // +
-    Minus,   // -
-    Star,    // *
-    Slash,   // /
-    Percent, // %
+    Plus,       // +
+    Minus,      // -
+    Star,       // *
+    Slash,      // /
+    Percent,    // %
+    PlusPlus,   // ++
+    MinusMinus, // --
 
     /* Bitwise operators */
     Ampersand,      // &
@@ -39,6 +41,18 @@ enum class TokenType {
     Tilde,          // ~
     LessLess,       // <<
     GreaterGreater, // >>
+
+    /* Compound assignment operators */
+    PlusEquals,           // +=
+    MinusEquals,          // -=
+    StarEquals,           // *=
+    SlashEquals,          // /=
+    PercentEquals,        // %=
+    AmpersandEquals,      // &=
+    PipeEquals,           // |=
+    CaretEquals,          // ^=
+    LessLessEquals,       // <<=
+    GreaterGreaterEquals, // >>=
 
     /* Comparison operators */
     EqualEqual,   // ==

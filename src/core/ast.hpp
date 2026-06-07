@@ -156,6 +156,17 @@ struct LValueAssignStatement : ASTNode {
     std::unique_ptr<ASTNode> value;
 };
 
+/*
+ * Compound assignment: x += 5, obj.score -= 1, arr[0] *= 2
+ * Also used for x++ (op="+", value=LiteralNode(1)) and x-- (op="-").
+ * The op field holds the bare operator without '=' (e.g. "+" for "+=").
+ */
+struct CompoundAssignStatement : ASTNode {
+    std::string op;
+    std::unique_ptr<ASTNode> target; // IdentifierNode, PropertyAccessNode, or IndexExprNode
+    std::unique_ptr<ASTNode> value;
+};
+
 /* The top-level program: an ordered list of statements. */
 struct Program {
     std::vector<std::unique_ptr<ASTNode>> statements;

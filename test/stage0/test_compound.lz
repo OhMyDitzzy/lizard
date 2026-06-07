@@ -1,0 +1,56 @@
+var x = 10
+
+x++
+show(x)
+
+x--
+show(x)
+
+++x
+show(x)
+
+--x
+show(x)
+
+x += 5
+show(x)
+
+x -= 3
+show(x)
+
+x *= 2
+show(x)
+
+x /= 4
+show(x)
+
+x %= 3
+show(x)
+
+var bits = 8
+bits <<= 2
+show(bits)
+
+bits >>= 1
+show(bits)
+
+bits &= 0b11111111
+show(bits)
+
+var s = "hello"
+s += " world"
+show(s)
+
+let obj = #{ score: 0, name: "test" }
+obj.score += 10
+obj.score++
+show(obj)
+show(obj.score)
+
+let arr = [1, 2, 3]
+arr[0] += 99
+arr[1]++
+show(arr)
+
+arr[0] *= 2
+show(arr[0])

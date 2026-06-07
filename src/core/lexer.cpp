@@ -189,6 +189,58 @@ Token Lexer::readMultilineString() {
 
 Token Lexer::readNumber() {
     int startLine = line_, startCol = col_;
+
+    // Binary literal: 0b1010 or 0B1010
+    if (current() == '0' && (peek() == 'b' || peek() == 'B')) {
+        advance();
+        advance(); // consume '0' and 'b'
+        std::string bits;
+        while (pos_ < source_.size() && (current() == '0' || current() == '1')) {
+            bits += current();
+            advance();
+        }
+        if (bits.empty()) {
+            LizardError err;
+            err.code = "E006";
+            err.message = "expected binary digits after '0b'";
+            err.filepath = filepath_;
+            err.line = startLine;
+            err.col = startCol;
+            err.length = 2;
+            err.tip = "binary literals use only 0 and 1, e.g. 0b1010";
+            reportError(err, source_);
+            std::exit(1);
+        }
+        return Token{TokenType::Integer, std::to_string(std::stoll(bits, nullptr, 2)), startLine,
+                     startCol};
+    }
+
+    // Hex literal: 0xFF or 0XFF
+    if (current() == '0' && (peek() == 'x' || peek() == 'X')) {
+        advance();
+        advance(); // consume '0' and 'x'
+        std::string digits;
+        while (pos_ < source_.size() && std::isxdigit(current())) {
+            digits += current();
+            advance();
+        }
+        if (digits.empty()) {
+            LizardError err;
+            err.code = "E007";
+            err.message = "expected hex digits after '0x'";
+            err.filepath = filepath_;
+            err.line = startLine;
+            err.col = startCol;
+            err.length = 2;
+            err.tip = "hex literals use 0-9 and a-f, e.g. 0xFF";
+            reportError(err, source_);
+            std::exit(1);
+        }
+        return Token{TokenType::Integer, std::to_string(std::stoll(digits, nullptr, 16)), startLine,
+                     startCol};
+    }
+
+    // Decimal and float
     std::string value;
     bool isFloat = false;
 
@@ -356,22 +408,58 @@ std::vector<Token> Lexer::tokenize() {
             tokens.push_back(Token{TokenType::RightBrace, "}", tokenLine, tokenCol});
         } else if (c == '+') {
             advance();
-            tokens.push_back(Token{TokenType::Plus, "+", tokenLine, tokenCol});
+            if (current() == '+') {
+                advance();
+                tokens.push_back(Token{TokenType::PlusPlus, "++", tokenLine, tokenCol});
+            } else if (current() == '=') {
+                advance();
+                tokens.push_back(Token{TokenType::PlusEquals, "+=", tokenLine, tokenCol});
+            } else {
+                tokens.push_back(Token{TokenType::Plus, "+", tokenLine, tokenCol});
+            }
         } else if (c == '-') {
             advance();
-            tokens.push_back(Token{TokenType::Minus, "-", tokenLine, tokenCol});
+            if (current() == '-') {
+                advance();
+                tokens.push_back(Token{TokenType::MinusMinus, "--", tokenLine, tokenCol});
+            } else if (current() == '=') {
+                advance();
+                tokens.push_back(Token{TokenType::MinusEquals, "-=", tokenLine, tokenCol});
+            } else {
+                tokens.push_back(Token{TokenType::Minus, "-", tokenLine, tokenCol});
+            }
         } else if (c == '*') {
             advance();
-            tokens.push_back(Token{TokenType::Star, "*", tokenLine, tokenCol});
+            if (current() == '=') {
+                advance();
+                tokens.push_back(Token{TokenType::StarEquals, "*=", tokenLine, tokenCol});
+            } else {
+                tokens.push_back(Token{TokenType::Star, "*", tokenLine, tokenCol});
+            }
         } else if (c == '/') {
             advance();
-            tokens.push_back(Token{TokenType::Slash, "/", tokenLine, tokenCol});
+            if (current() == '=') {
+                advance();
+                tokens.push_back(Token{TokenType::SlashEquals, "/=", tokenLine, tokenCol});
+            } else {
+                tokens.push_back(Token{TokenType::Slash, "/", tokenLine, tokenCol});
+            }
         } else if (c == '%') {
             advance();
-            tokens.push_back(Token{TokenType::Percent, "%", tokenLine, tokenCol});
+            if (current() == '=') {
+                advance();
+                tokens.push_back(Token{TokenType::PercentEquals, "%=", tokenLine, tokenCol});
+            } else {
+                tokens.push_back(Token{TokenType::Percent, "%", tokenLine, tokenCol});
+            }
         } else if (c == '^') {
             advance();
-            tokens.push_back(Token{TokenType::Caret, "^", tokenLine, tokenCol});
+            if (current() == '=') {
+                advance();
+                tokens.push_back(Token{TokenType::CaretEquals, "^=", tokenLine, tokenCol});
+            } else {
+                tokens.push_back(Token{TokenType::Caret, "^", tokenLine, tokenCol});
+            }
         } else if (c == '~') {
             advance();
             tokens.push_back(Token{TokenType::Tilde, "~", tokenLine, tokenCol});
@@ -404,6 +492,9 @@ std::vector<Token> Lexer::tokenize() {
             if (current() == '&') {
                 advance();
                 tokens.push_back(Token{TokenType::AmpAmp, "&&", tokenLine, tokenCol});
+            } else if (current() == '=') {
+                advance();
+                tokens.push_back(Token{TokenType::AmpersandEquals, "&=", tokenLine, tokenCol});
             } else {
                 tokens.push_back(Token{TokenType::Ampersand, "&", tokenLine, tokenCol});
             }
@@ -412,6 +503,9 @@ std::vector<Token> Lexer::tokenize() {
             if (current() == '|') {
                 advance();
                 tokens.push_back(Token{TokenType::PipePipe, "||", tokenLine, tokenCol});
+            } else if (current() == '=') {
+                advance();
+                tokens.push_back(Token{TokenType::PipeEquals, "|=", tokenLine, tokenCol});
             } else {
                 tokens.push_back(Token{TokenType::Pipe, "|", tokenLine, tokenCol});
             }
@@ -419,7 +513,12 @@ std::vector<Token> Lexer::tokenize() {
             advance();
             if (current() == '<') {
                 advance();
-                tokens.push_back(Token{TokenType::LessLess, "<<", tokenLine, tokenCol});
+                if (current() == '=') {
+                    advance();
+                    tokens.push_back(Token{TokenType::LessLessEquals, "<<=", tokenLine, tokenCol});
+                } else {
+                    tokens.push_back(Token{TokenType::LessLess, "<<", tokenLine, tokenCol});
+                }
             } else if (current() == '=') {
                 advance();
                 tokens.push_back(Token{TokenType::LessEqual, "<=", tokenLine, tokenCol});
@@ -430,7 +529,13 @@ std::vector<Token> Lexer::tokenize() {
             advance();
             if (current() == '>') {
                 advance();
-                tokens.push_back(Token{TokenType::GreaterGreater, ">>", tokenLine, tokenCol});
+                if (current() == '=') {
+                    advance();
+                    tokens.push_back(
+                        Token{TokenType::GreaterGreaterEquals, ">>=", tokenLine, tokenCol});
+                } else {
+                    tokens.push_back(Token{TokenType::GreaterGreater, ">>", tokenLine, tokenCol});
+                }
             } else if (current() == '=') {
                 advance();
                 tokens.push_back(Token{TokenType::GreaterEqual, ">=", tokenLine, tokenCol});

@@ -29,6 +29,10 @@ class Parser {
     std::unique_ptr<AssignStatement> parseAssign();
     std::unique_ptr<ShowStatement> parseShow();
     std::unique_ptr<IfStatement> parseIf();
+    std::unique_ptr<ASTNode> parseLValueAssign();         // ident(.prop|[idx])+ = expr
+    std::unique_ptr<ASTNode> parsePrefixIncrDecr();       // ++x, --x, ++obj.prop
+    std::unique_ptr<ASTNode> parsePostfixIncrDecr();      // x++, x--
+    std::unique_ptr<ASTNode> parseSimpleCompoundAssign(); // x += 5, x -= 1
 
     /* Parse statements until ';' and return them as a block. */
     std::vector<std::unique_ptr<ASTNode>> parseBlock();
@@ -76,9 +80,6 @@ class Parser {
     std::unique_ptr<ASTNode> parsePrimary();
     std::unique_ptr<ASTNode> parseArrayLiteral();
     std::unique_ptr<ASTNode> parseObjectLiteral();
-    /* Parse ident(.prop|[idx])+ = expr as a statement. */
-    std::unique_ptr<LValueAssignStatement> parseLValueAssign();
-
     /* Build a concat expression tree from a format string token. */
     std::unique_ptr<ASTNode> parseFStringLiteral(const Token& token);
 };

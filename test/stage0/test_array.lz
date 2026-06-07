@@ -3,3 +3,8 @@ show(array_of_number)
 
 array_of_number[0] = 5
 show(array_of_number) // Should be [5, 2, 3]
+
+let nums = [1, 2, 3, 4, 5]
+show(nums[0])      // 1
+show(nums[-1])     // 5  (negative indexing)
+nums[0] = 99

@@ -3,6 +3,7 @@
 #include "../error/error.hpp"
 #include "lexer.hpp"
 #include <cstdlib>
+#include <unordered_map>
 
 Parser::Parser(const std::string& filepath, const std::string& source,
                const std::vector<Token>& tokens)
@@ -57,10 +58,29 @@ std::unique_ptr<ASTNode> Parser::parseStatement() {
     if (current().type == TokenType::Var) return parseVarDecl(true);
     if (current().type == TokenType::If) return parseIf();
 
+    // Prefix ++ and --: ++x, --x, ++obj.prop, ++arr[0]
+    if (current().type == TokenType::PlusPlus || current().type == TokenType::MinusMinus)
+        return parsePrefixIncrDecr();
+
     if (current().type == TokenType::Identifier) {
-        if (peek().type == TokenType::Equals) return parseAssign();
-        // ident followed by . or [ could be a property/index assignment
-        if (peek().type == TokenType::Dot || peek().type == TokenType::LeftBracket)
+        auto nextType = peek().type;
+
+        if (nextType == TokenType::Equals) return parseAssign();
+
+        // x++ or x-- (postfix on a simple variable)
+        if (nextType == TokenType::PlusPlus || nextType == TokenType::MinusMinus)
+            return parsePostfixIncrDecr();
+
+        // x += 5 or x -= 1 etc. (compound assign on a simple variable)
+        if (nextType == TokenType::PlusEquals || nextType == TokenType::MinusEquals ||
+            nextType == TokenType::StarEquals || nextType == TokenType::SlashEquals ||
+            nextType == TokenType::PercentEquals || nextType == TokenType::AmpersandEquals ||
+            nextType == TokenType::PipeEquals || nextType == TokenType::CaretEquals ||
+            nextType == TokenType::LessLessEquals || nextType == TokenType::GreaterGreaterEquals)
+            return parseSimpleCompoundAssign();
+
+        // obj.prop or arr[idx]: chain followed by =, +=, ++, etc.
+        if (nextType == TokenType::Dot || nextType == TokenType::LeftBracket)
             return parseLValueAssign();
     }
 
@@ -686,17 +706,13 @@ std::unique_ptr<ASTNode> Parser::parseObjectLiteral() {
     return node;
 }
 
-std::unique_ptr<LValueAssignStatement> Parser::parseLValueAssign() {
-    auto node = std::make_unique<LValueAssignStatement>();
-    node->line = current().line;
-    node->col = current().col;
+std::unique_ptr<ASTNode> Parser::parseLValueAssign() {
+    int startLine = current().line, startCol = current().col;
 
-    // Parse the left-hand side: ident (.prop | [expr])+
     auto base = std::make_unique<IdentifierNode>();
     base->line = current().line;
     base->col = current().col;
     base->name = consume().value;
-
     std::unique_ptr<ASTNode> target = std::move(base);
 
     while (current().type == TokenType::Dot || current().type == TokenType::LeftBracket) {
@@ -722,20 +738,190 @@ std::unique_ptr<LValueAssignStatement> Parser::parseLValueAssign() {
             target = std::move(acc);
         } else {
             int line = current().line, col = current().col;
-            consume(); // '['
+            consume();
             auto idx = std::make_unique<IndexExprNode>();
             idx->line = line;
             idx->col = col;
             idx->object = std::move(target);
             idx->index = parseExpr();
-            expect(TokenType::RightBracket, "']' to close index expression");
+            expect(TokenType::RightBracket, "']'");
             target = std::move(idx);
         }
     }
 
-    expect(TokenType::Equals, "'=' in assignment");
+    auto makeOne = [&]() -> std::unique_ptr<ASTNode> {
+        auto lit = std::make_unique<LiteralNode>();
+        lit->line = startLine;
+        lit->col = startCol;
+        lit->kind = LiteralNode::Kind::Integer;
+        lit->value = "1";
+        return lit;
+    };
 
-    node->target = std::move(target);
-    node->value = parseExpr();
-    return node;
+    if (current().type == TokenType::Equals) {
+        consume();
+        auto stmt = std::make_unique<LValueAssignStatement>();
+        stmt->line = startLine;
+        stmt->col = startCol;
+        stmt->target = std::move(target);
+        stmt->value = parseExpr();
+        return stmt;
+    }
+
+    if (current().type == TokenType::PlusPlus || current().type == TokenType::MinusMinus) {
+        auto stmt = std::make_unique<CompoundAssignStatement>();
+        stmt->line = startLine;
+        stmt->col = startCol;
+        stmt->op = (current().type == TokenType::PlusPlus) ? "+" : "-";
+        stmt->target = std::move(target);
+        stmt->value = makeOne();
+        consume();
+        return stmt;
+    }
+
+    static const std::unordered_map<TokenType, std::string> cops = {
+        {TokenType::PlusEquals, "+"},      {TokenType::MinusEquals, "-"},
+        {TokenType::StarEquals, "*"},      {TokenType::SlashEquals, "/"},
+        {TokenType::PercentEquals, "%"},   {TokenType::AmpersandEquals, "&"},
+        {TokenType::PipeEquals, "|"},      {TokenType::CaretEquals, "^"},
+        {TokenType::LessLessEquals, "<<"}, {TokenType::GreaterGreaterEquals, ">>"},
+    };
+    auto it = cops.find(current().type);
+    if (it != cops.end()) {
+        auto stmt = std::make_unique<CompoundAssignStatement>();
+        stmt->line = startLine;
+        stmt->col = startCol;
+        stmt->op = it->second;
+        stmt->target = std::move(target);
+        consume();
+        stmt->value = parseExpr();
+        return stmt;
+    }
+
+    LizardError err;
+    err.code = "E011";
+    err.message = "expected '=', '+=', or '++' after lvalue";
+    err.filepath = filepath_;
+    err.line = current().line;
+    err.col = current().col;
+    err.length = static_cast<int>(current().value.size());
+    reportError(err, source_);
+    std::exit(1);
+}
+
+std::unique_ptr<ASTNode> Parser::parsePrefixIncrDecr() {
+    std::string op = (current().type == TokenType::PlusPlus) ? "+" : "-";
+    int line = current().line, col = current().col;
+    consume(); // consume ++ or --
+
+    if (current().type != TokenType::Identifier) {
+        LizardError err;
+        err.code = "E019";
+        err.message = std::string("expected a variable name after prefix '") +
+                      (op == "+" ? "++" : "--") + "'";
+        err.filepath = filepath_;
+        err.line = current().line;
+        err.col = current().col;
+        err.length = 1;
+        reportError(err, source_);
+        std::exit(1);
+    }
+
+    // Parse ident + optional chain
+    auto base = std::make_unique<IdentifierNode>();
+    base->line = current().line;
+    base->col = current().col;
+    base->name = consume().value;
+    std::unique_ptr<ASTNode> target = std::move(base);
+
+    while (current().type == TokenType::Dot || current().type == TokenType::LeftBracket) {
+        if (current().type == TokenType::Dot) {
+            int l = current().line, c = current().col;
+            consume();
+            auto acc = std::make_unique<PropertyAccessNode>();
+            acc->line = l;
+            acc->col = c;
+            acc->object = std::move(target);
+            acc->property = consume().value;
+            target = std::move(acc);
+        } else {
+            int l = current().line, c = current().col;
+            consume();
+            auto idx = std::make_unique<IndexExprNode>();
+            idx->line = l;
+            idx->col = c;
+            idx->object = std::move(target);
+            idx->index = parseExpr();
+            expect(TokenType::RightBracket, "']'");
+            target = std::move(idx);
+        }
+    }
+
+    auto one = std::make_unique<LiteralNode>();
+    one->line = line;
+    one->col = col;
+    one->kind = LiteralNode::Kind::Integer;
+    one->value = "1";
+
+    auto stmt = std::make_unique<CompoundAssignStatement>();
+    stmt->line = line;
+    stmt->col = col;
+    stmt->op = op;
+    stmt->target = std::move(target);
+    stmt->value = std::move(one);
+    return stmt;
+}
+
+std::unique_ptr<ASTNode> Parser::parsePostfixIncrDecr() {
+    int line = current().line, col = current().col;
+
+    auto base = std::make_unique<IdentifierNode>();
+    base->line = line;
+    base->col = col;
+    base->name = consume().value; // consume identifier
+
+    std::string op = (current().type == TokenType::PlusPlus) ? "+" : "-";
+    consume(); // consume ++ or --
+
+    auto one = std::make_unique<LiteralNode>();
+    one->line = line;
+    one->col = col;
+    one->kind = LiteralNode::Kind::Integer;
+    one->value = "1";
+
+    auto stmt = std::make_unique<CompoundAssignStatement>();
+    stmt->line = line;
+    stmt->col = col;
+    stmt->op = op;
+    stmt->target = std::move(base);
+    stmt->value = std::move(one);
+    return stmt;
+}
+
+std::unique_ptr<ASTNode> Parser::parseSimpleCompoundAssign() {
+    int line = current().line, col = current().col;
+
+    auto base = std::make_unique<IdentifierNode>();
+    base->line = line;
+    base->col = col;
+    base->name = consume().value; // consume identifier
+
+    static const std::unordered_map<TokenType, std::string> cops = {
+        {TokenType::PlusEquals, "+"},      {TokenType::MinusEquals, "-"},
+        {TokenType::StarEquals, "*"},      {TokenType::SlashEquals, "/"},
+        {TokenType::PercentEquals, "%"},   {TokenType::AmpersandEquals, "&"},
+        {TokenType::PipeEquals, "|"},      {TokenType::CaretEquals, "^"},
+        {TokenType::LessLessEquals, "<<"}, {TokenType::GreaterGreaterEquals, ">>"},
+    };
+
+    std::string op = cops.at(current().type);
+    consume(); // consume compound operator
+
+    auto stmt = std::make_unique<CompoundAssignStatement>();
+    stmt->line = line;
+    stmt->col = col;
+    stmt->op = op;
+    stmt->target = std::move(base);
+    stmt->value = parseExpr();
+    return stmt;
 }
